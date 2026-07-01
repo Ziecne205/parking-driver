@@ -1,0 +1,129 @@
+'use client'
+
+import { useState } from 'react'
+import { useVehicleTypes } from '@/hooks/useAvailability'
+import type { CreateReservationResult } from '@/hooks/useReservations'
+import { BookForm } from './BookForm'
+import { DepositCheckout } from './DepositCheckout'
+import { BookingConfirmation } from './BookingConfirmation'
+import type { BookStep, BookFormValues } from './types'
+
+interface ReadonlyBookFlowProps {
+  readonly userId?: string
+  readonly onDone: () => void
+}
+
+const STEPS: { key: BookStep; label: string }[] = [
+  { key: 'form', label: 'Chọn chỗ' },
+  { key: 'payment', label: 'Thanh toán' },
+  { key: 'confirmation', label: 'Hoàn tất' },
+]
+
+export function BookFlow({ userId, onDone }: ReadonlyBookFlowProps) {
+  const [step, setStep] = useState<BookStep>('form')
+  const [createResult, setCreateResult] = useState<CreateReservationResult | null>(null)
+  const [formValues, setFormValues] = useState<BookFormValues | null>(null)
+
+  const { data: vehicleTypes = [] } = useVehicleTypes()
+
+  const currentIndex = STEPS.findIndex((s) => s.key === step)
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 shadow-sm w-full z-10 px-6 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {step !== 'form' && step !== 'confirmation' && (
+            <button
+              type="button"
+              onClick={() => setStep('form')}
+              className="text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center p-2 rounded-full"
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+          )}
+          <span className="text-lg font-bold text-blue-600">ParkFlow Pro</span>
+        </div>
+        <span className="text-sm text-gray-400">
+          Bước {currentIndex + 1}/{STEPS.length}
+        </span>
+      </header>
+
+      <main className="flex-grow w-full max-w-3xl mx-auto px-4 md:px-8 py-6">
+        {/* Progress bar */}
+        <div className="w-full max-w-md mx-auto mb-6">
+          <div className="flex items-center justify-between relative">
+            {/* Track */}
+            <div className="absolute top-4 left-0 w-full h-1 bg-gray-200 rounded-full -z-10" />
+            {/* Fill */}
+            <div
+              className="absolute top-4 left-0 h-1 bg-blue-600 rounded-full -z-10 transition-all duration-300"
+              style={{ width: `${(currentIndex / (STEPS.length - 1)) * 100}%` }}
+            />
+            {STEPS.map((s, i) => {
+              const done = i < currentIndex
+              const active = i === currentIndex
+              return (
+                <div key={s.key} className="flex flex-col items-center gap-1 bg-gray-50 px-2">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                      done
+                        ? 'bg-blue-600 text-white'
+                        : active
+                        ? 'bg-blue-600 text-white shadow-[0_0_0_4px_#dbeafe]'
+                        : 'bg-gray-200 text-gray-500 border-2 border-gray-200'
+                    }`}
+                  >
+                    {done ? (
+                      <span className="material-symbols-outlined text-sm">check</span>
+                    ) : (
+                      i + 1
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs font-medium ${
+                      active ? 'text-blue-600 font-bold' : done ? 'text-gray-600' : 'text-gray-400'
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Step content */}
+        {step === 'form' && (
+          <BookForm
+            userId={userId}
+            onSuccess={(result, values) => {
+              setCreateResult(result)
+              setFormValues(values)
+              setStep('payment')
+            }}
+          />
+        )}
+
+        {step === 'payment' && createResult && formValues && (
+          <DepositCheckout
+            reservation={createResult}
+            values={formValues}
+            vehicleTypes={vehicleTypes}
+            onSuccess={() => setStep('confirmation')}
+          />
+        )}
+
+        {step === 'confirmation' && createResult && formValues && (
+          <BookingConfirmation
+            reservationId={createResult.reservationId}
+            values={formValues}
+            vehicleTypes={vehicleTypes}
+            depositAmount={createResult.depositAmount}
+            onDone={onDone}
+          />
+        )}
+      </main>
+    </div>
+  )
+}
