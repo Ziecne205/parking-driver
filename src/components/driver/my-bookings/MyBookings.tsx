@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { ArrowLeft, ListFilter } from 'lucide-react'
+import { ArrowLeft, ListFilter, CheckCircle } from 'lucide-react'
 import { useMyReservations } from '@/hooks/useMyReservations'
 import { useCancelReservation } from '@/hooks/useReservations'
 import type { ReservationStatus } from '@/types/model'
@@ -22,24 +22,34 @@ const FILTER_LABELS: Record<ReservationStatus | 'all', string> = {
 export function MyBookings({ userId, onBack }: ReadonlyMyBookingsProps) {
   const [filter, setFilter] = useState<ReservationStatus | 'all'>('all')
   const [isPolling, setIsPolling] = useState(false)
+  // ID of the reservation just paid — show a success banner and highlight it
+  const [confirmedId, setConfirmedId] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
+    const confirmed = searchParams.get('confirmed')
+    if (confirmed) {
+      setConfirmedId(confirmed)
+      setIsPolling(true)
+      // Clean the URL immediately
+      router.replace(pathname ?? '/driver/my-bookings')
+      // Keep polling for up to 10s to pick up the BE webhook status update
+      const timer = setTimeout(() => setIsPolling(false), 10000)
+      return () => clearTimeout(timer)
+    }
+
+    // Legacy: handle raw PayOS ?code= / ?cancel= params (e.g. if returnUrl is old)
     if (searchParams.has('code') || searchParams.has('cancel')) {
       setIsPolling(true)
-      // Clean up the URL to hide ugly PayOS params
       router.replace(pathname ?? '/driver/my-bookings')
-      
-      // Stop polling after 10 seconds
       const timer = setTimeout(() => setIsPolling(false), 10000)
       return () => clearTimeout(timer)
     }
   }, [searchParams, router, pathname])
 
   const { data: reservations = [], isLoading } = useMyReservations(userId, {
-    // Poll for a bit if we just returned from PayOS to await webhook
     refetchInterval: isPolling ? 2000 : undefined,
   })
 
@@ -50,7 +60,9 @@ export function MyBookings({ userId, onBack }: ReadonlyMyBookingsProps) {
     : reservations.filter((r) => r.status === filter)
 
   // Sort by createdAt descending
-  filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  const sorted = [...filtered].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -71,6 +83,35 @@ export function MyBookings({ userId, onBack }: ReadonlyMyBookingsProps) {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-5 space-y-5">
+        {/* Payment success banner — shown after returning from PayOS */}
+        {confirmedId && (
+          <div className="flex items-start gap-3 rounded-xl bg-green-50 border border-green-200 p-4">
+            <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-green-800">Thanh toán cọc thành công!</p>
+              <p className="text-xs text-green-700 mt-0.5">
+                Đặt chỗ #{confirmedId} đã được xác nhận. Trạng thái sẽ cập nhật trong giây lát.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConfirmedId(null)}
+              className="ml-auto text-green-500 hover:text-green-700"
+              aria-label="Đóng thông báo"
+            >
+              <span className="material-symbols-outlined text-base">close</span>
+            </button>
+          </div>
+        )}
+
+        {/* Polling indicator */}
+        {isPolling && (
+          <div className="flex items-center gap-2 text-blue-600 text-sm px-1">
+            <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>
+            <span>Đang cập nhật trạng thái đặt chỗ...</span>
+          </div>
+        )}
+
         {/* Filter chips */}
         <div>
           <div className="flex items-center gap-1.5 mb-3">
@@ -102,7 +143,7 @@ export function MyBookings({ userId, onBack }: ReadonlyMyBookingsProps) {
               <div key={i} className="rounded-xl border border-gray-200 bg-white h-40 animate-pulse" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <span className="material-symbols-outlined text-5xl text-gray-300 mb-3">receipt_long</span>
             <p className="text-gray-500 text-sm">
@@ -111,12 +152,13 @@ export function MyBookings({ userId, onBack }: ReadonlyMyBookingsProps) {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {filtered.map((r) => (
+            {sorted.map((r) => (
               <BookingCard
                 key={r.reservationId}
                 reservation={r}
                 onCancel={(id) => cancelReservation(id)}
                 isCancelling={isCancelling && cancellingId === r.reservationId}
+                highlighted={r.reservationId === confirmedId}
               />
             ))}
           </div>

@@ -34,7 +34,7 @@ function formatVnd(amount: number) {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫'
 }
 
-export function BookingCard({ reservation, onCancel, isCancelling }: ReadonlyBookingCardProps) {
+export function BookingCard({ reservation, onCancel, isCancelling, highlighted = false }: ReadonlyBookingCardProps) {
   const [showQr, setShowQr] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
@@ -42,7 +42,7 @@ export function BookingCard({ reservation, onCancel, isCancelling }: ReadonlyBoo
     mutationFn: (reservationId: string) =>
       api.post<PayosLink>('/driver/payments/payos/create-link', {
         type: 'DEPOSIT',
-        id: Number(reservationId),
+        id: Number(reservationId), // reservationId is a string in the Reservation model
       }),
     onSuccess: (res) => {
       window.location.href = res.checkoutUrl
@@ -50,6 +50,11 @@ export function BookingCard({ reservation, onCancel, isCancelling }: ReadonlyBoo
   })
 
   const canCancel = CANCELLABLE_STATUSES.has(reservation.status)
+  // FE-7: enforce 3-hour pre-entry cancellation policy on the FE to give clear
+  // feedback before the request hits the BE.
+  const hoursUntilEntry =
+    (new Date(reservation.expectedEntryTime).getTime() - Date.now()) / 3_600_000
+  const cancelBlockedByTime = canCancel && hoursUntilEntry < 3
   const statusStyle = STATUS_STYLES[reservation.status] ?? STATUS_STYLES.Fulfilled
   const statusLabel = RESERVATION_STATUS_LABELS[reservation.status] ?? reservation.status
 
@@ -59,7 +64,9 @@ export function BookingCard({ reservation, onCancel, isCancelling }: ReadonlyBoo
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <div className={`rounded-xl border bg-white shadow-sm overflow-hidden transition-all ${
+      highlighted ? 'border-green-400 ring-2 ring-green-200' : 'border-gray-200'
+    }`}>
       {/* Top accent bar by status */}
       <div
         className={`h-1 w-full ${
@@ -136,15 +143,24 @@ export function BookingCard({ reservation, onCancel, isCancelling }: ReadonlyBoo
             </button>
           )}
           {canCancel && (
-            <button
-              type="button"
-              onClick={() => setShowCancelConfirm(true)}
-              disabled={isCancelling}
-              className="flex-1 rounded-lg border border-red-200 bg-red-50 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
-            >
-              <X className="w-3.5 h-3.5" />
-              Hủy đặt chỗ
-            </button>
+            <div className="relative flex-1 group">
+              <button
+                type="button"
+                onClick={() => !cancelBlockedByTime && setShowCancelConfirm(true)}
+                disabled={isCancelling || cancelBlockedByTime}
+                aria-disabled={cancelBlockedByTime}
+                className="w-full rounded-lg border border-red-200 bg-red-50 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+              >
+                <X className="w-3.5 h-3.5" />
+                Hủy đặt chỗ
+              </button>
+              {cancelBlockedByTime && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-lg bg-gray-800 px-3 py-2 text-xs text-white text-center shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                  Không thể hủy trong vòng 3 giờ trước giờ vào
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

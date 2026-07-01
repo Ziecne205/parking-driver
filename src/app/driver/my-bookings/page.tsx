@@ -7,15 +7,17 @@ import { MyBookings } from '@/components/driver/my-bookings'
 
 export default function DriverMyBookingsPage() {
   const router = useRouter()
-  const { user, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated, _hasHydrated } = useAuthStore()
 
   useEffect(() => {
+    if (!_hasHydrated) return
     if (!isAuthenticated || !user) {
       router.replace('/driver/auth')
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, _hasHydrated, router])
 
-  if (!isAuthenticated || !user) {
+  // FE-2: wait for Zustand rehydration before making any routing decision
+  if (!_hasHydrated || !isAuthenticated || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent" />

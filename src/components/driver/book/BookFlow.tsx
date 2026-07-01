@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store'
 import { useVehicleTypes } from '@/hooks/useAvailability'
-import type { CreateReservationResult } from '@/hooks/useReservations'
+import { useCancelReservation, type CreateReservationResult } from '@/hooks/useReservations'
 import { BookForm } from './BookForm'
 import { DepositCheckout } from './DepositCheckout'
 import { BookingConfirmation } from './BookingConfirmation'
@@ -25,14 +26,35 @@ const STEPS: { key: BookStep; label: string }[] = [
 export function BookFlow({ userId, onDone }: ReadonlyBookFlowProps) {
   const router = useRouter()
   const { user, logout } = useAuthStore()
+  const queryClient = useQueryClient()
+  const { mutateAsync: cancelReservation } = useCancelReservation()
 
   const [step, setStep] = useState<BookStep>('form')
   const [createResult, setCreateResult] = useState<CreateReservationResult | null>(null)
   const [formValues, setFormValues] = useState<BookFormValues | null>(null)
+  const [isBackingOut, setIsBackingOut] = useState(false)
 
   const { data: vehicleTypes = [] } = useVehicleTypes()
 
   const currentIndex = STEPS.findIndex((s) => s.key === step)
+
+  // FE-3: cancel the dangling Pending reservation and clear its PayOS cache entry
+  // before letting the user go back to the booking form.
+  async function handleBackToForm() {
+    if (createResult?.reservationId) {
+      setIsBackingOut(true)
+      try {
+        await cancelReservation(String(createResult.reservationId))
+      } catch {
+        // Cancellation best-effort — don't block the user
+      }
+      queryClient.removeQueries({ queryKey: ['payos-link', 'DEPOSIT', createResult.reservationId] })
+      setIsBackingOut(false)
+    }
+    setCreateResult(null)
+    setFormValues(null)
+    setStep('form')
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -49,11 +71,15 @@ export function BookFlow({ userId, onDone }: ReadonlyBookFlowProps) {
           {step !== 'form' && step !== 'confirmation' && (
             <button
               type="button"
-              onClick={() => setStep('form')}
-              className="text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center p-2 rounded-full -ml-2"
+              onClick={handleBackToForm}
+              disabled={isBackingOut}
+              className="text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center p-2 rounded-full -ml-2 disabled:opacity-50"
               title="Quay lại"
             >
-              <span className="material-symbols-outlined">arrow_back</span>
+              {isBackingOut
+                ? <span className="material-symbols-outlined animate-spin">sync</span>
+                : <span className="material-symbols-outlined">arrow_back</span>
+              }
             </button>
           )}
           <Link href="/driver" className="text-lg font-bold text-blue-600 hover:text-blue-700 transition-colors">

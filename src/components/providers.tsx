@@ -1,55 +1,17 @@
 'use client'
 
-import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react-query'
-import { ReactNode, useState, useEffect } from 'react'
-import { Toaster, toast } from 'sonner'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactNode } from 'react'
+import { Toaster } from 'sonner'
+import { getQueryClient } from '@/lib/queryClient'
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 30 * 1000,
-            // No global polling — only queries that need realtime data opt in via
-            // their own refetchInterval (e.g. parking availability). Avoids spamming
-            // the backend with repeated Users/Config/Pricing/Slot queries.
-            refetchOnWindowFocus: true,
-            refetchOnMount: true,
-            refetchOnReconnect: true,
-            retry: 1,
-            throwOnError: false,
-          },
-        },
-      })
-  )
+  // Use the module-level singleton so the Zustand logout action can call
+  // getQueryClient().clear() from outside React (FE-8 fix).
+  const queryClient = getQueryClient()
 
-  const [mockingEnabled, setMockingEnabled] = useState(false)
-
-  useEffect(() => {
-    async function enableMocking() {
-      // One switch: no NEXT_PUBLIC_API_BASE -> run MSW mocks; set it -> hit the real backend.
-      if (!process.env.NEXT_PUBLIC_API_BASE) {
-        const { initMocks } = await import('@/mocks')
-        await initMocks()
-      }
-      setMockingEnabled(true)
-    }
-
-    enableMocking()
-  }, [])
-
-  if (!mockingEnabled) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Đang khởi tạo...</p>
-        </div>
-      </div>
-    )
-  }
-
+  // MSW is fully disabled — all requests go to the real backend defined by
+  // NEXT_PUBLIC_API_BASE in .env.local. No mocking initialisation, no render gate.
   return (
     <QueryClientProvider client={queryClient}>
       {children}

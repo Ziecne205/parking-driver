@@ -11,23 +11,30 @@ export interface PayosLink {
 
 export interface CreatePayosLinkInput {
   type: 'DEPOSIT' | 'PARKING'
-  id: string // reservationId (DEPOSIT) or sessionId (PARKING)
+  /** Numeric reservation ID (DEPOSIT) or session ID (PARKING).
+   *  Kept as number throughout to avoid silent NaN from Number() conversion (FE-11). */
+  id: number
 }
 
 /**
  * Create a real PayOS payment link + QR. Needs PayOS keys configured on the BE.
- * Used as a query to prevent double-firing (and "order already exists" errors) 
+ * Used as a query to prevent double-firing (and "order already exists" errors)
  * during React Strict Mode double-mounts.
  */
 export function useCreatePayosLink(input?: CreatePayosLinkInput) {
   return useQuery<PayosLink, AppError>({
     queryKey: ['payos-link', input?.type, input?.id],
-    queryFn: () =>
-      api.post<PayosLink>('/driver/payments/payos/create-link', {
-        type: input!.type,
-        id: Number(input!.id),
-      }),
-    enabled: !!input,
-    staleTime: Infinity, // don't refetch, orderCode would conflict
+    queryFn: () => {
+      // FE-11: guard against non-finite IDs before hitting the API
+      if (!input || !Number.isFinite(input.id)) {
+        throw new Error('Invalid reservation ID — cannot create PayOS link')
+      }
+      return api.post<PayosLink>('/driver/payments/payos/create-link', {
+        type: input.type,
+        id: input.id,
+      })
+    },
+    enabled: !!input && Number.isFinite(input?.id),
+    staleTime: Infinity, // don't refetch — same orderCode would be rejected by PayOS
   })
 }

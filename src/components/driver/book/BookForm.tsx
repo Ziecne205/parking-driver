@@ -32,12 +32,14 @@ function todayLocal() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-/** Snap now+offset minutes to the next 15-min boundary → "HH:mm". */
+/** Snap now+offset minutes to the next 15-min boundary → "HH:mm".
+ *  FE-6: cap at 23:45 to prevent wrapping to 00:00 after 23:45. */
 function snapTo15(offsetMs: number): string {
   const d = new Date(Date.now() + offsetMs)
   const totalMin = d.getHours() * 60 + d.getMinutes()
   const snapped = Math.ceil(totalMin / 15) * 15
-  const hh = String(Math.floor(snapped / 60) % 24).padStart(2, '0')
+  if (snapped >= 1440) return '23:45' // past midnight boundary — cap instead of wrapping
+  const hh = String(Math.floor(snapped / 60)).padStart(2, '0')
   const mm = String(snapped % 60).padStart(2, '0')
   return `${hh}:${mm}`
 }
@@ -79,7 +81,7 @@ interface ReadonlyBookFormProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function BookForm({ userId, onSuccess }: ReadonlyBookFormProps) {
-  const { data: vehicleTypes = [] } = useVehicleTypes()
+  const { data: vehicleTypes = [], isLoading: isVehicleTypesLoading } = useVehicleTypes()
   const createReservation = useCreateReservation()
 
   // Đặt chỗ trực tuyến chỉ dành cho xe ô tô (4 bánh). Có thể có nhiều loại (4 chỗ / 7 chỗ).
@@ -152,6 +154,17 @@ export function BookForm({ userId, onSuccess }: ReadonlyBookFormProps) {
 
   const selectCls =
     'w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm text-gray-900 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none cursor-pointer'
+
+  // FE-10: show a clear message when vehicle types loaded but none are cars
+  if (!isVehicleTypesLoading && carTypes.length === 0) {
+    return (
+      <div className="bg-white rounded-xl p-6 border border-red-200 shadow-sm flex flex-col items-center gap-3 text-center">
+        <span className="material-symbols-outlined text-4xl text-red-400">directions_car_off</span>
+        <p className="text-sm font-semibold text-red-700">Không có loại xe ô tô khả dụng</p>
+        <p className="text-xs text-gray-500">Vui lòng liên hệ hỗ trợ hoặc thử lại sau.</p>
+      </div>
+    )
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">

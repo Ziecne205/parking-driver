@@ -15,7 +15,7 @@ export interface CreateReservationInput {
 
 export interface CreateReservationResult {
   success: boolean
-  reservationId: string
+  reservationId: number   // kept as number — no string↔number round-trip (FE-11)
   status: ReservationStatus
   depositAmount: number
   message: string
@@ -40,7 +40,7 @@ export function useCreateReservation() {
         })
         return {
           success: true,
-          reservationId: String(created.reservationId),
+          reservationId: created.reservationId, // numeric — no String() conversion (FE-11)
           status: created.status,
           depositAmount: created.depositAmount,
           message: 'OK',

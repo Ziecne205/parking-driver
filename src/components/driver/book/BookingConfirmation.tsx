@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import type { BookFormValues } from './types'
 
 interface ReadonlyBookingConfirmationProps {
-  readonly reservationId: string
+  readonly reservationId: number  // numeric from CreateReservationResult (FE-11)
   readonly values: BookFormValues
   readonly vehicleTypes: VehicleType[]
   readonly depositAmount: number
@@ -64,7 +64,7 @@ export function BookingConfirmation({
         {/* QR Code */}
         <div className="flex justify-center mb-4">
           <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 inline-flex relative w-44 h-44 items-center justify-center">
-            <QRCodeSVG value={reservationId} size={150} level="M" />
+            <QRCodeSVG value={String(reservationId)} size={150} level="M" />
           </div>
         </div>
         <p className="text-sm font-semibold text-gray-700 text-center">Mã QR để vào cổng</p>
