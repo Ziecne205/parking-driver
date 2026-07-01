@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useAuthStore } from '@/store'
 import { useVehicleTypes } from '@/hooks/useAvailability'
 import type { CreateReservationResult } from '@/hooks/useReservations'
 import { BookForm } from './BookForm'
@@ -20,6 +23,9 @@ const STEPS: { key: BookStep; label: string }[] = [
 ]
 
 export function BookFlow({ userId, onDone }: ReadonlyBookFlowProps) {
+  const router = useRouter()
+  const { user, logout } = useAuthStore()
+
   const [step, setStep] = useState<BookStep>('form')
   const [createResult, setCreateResult] = useState<CreateReservationResult | null>(null)
   const [formValues, setFormValues] = useState<BookFormValues | null>(null)
@@ -33,20 +39,49 @@ export function BookFlow({ userId, onDone }: ReadonlyBookFlowProps) {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm w-full z-10 px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
+          <Link
+            href="/driver"
+            className="text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center p-2 rounded-full"
+            title="Trang chủ"
+          >
+            <span className="material-symbols-outlined">home</span>
+          </Link>
           {step !== 'form' && step !== 'confirmation' && (
             <button
               type="button"
               onClick={() => setStep('form')}
-              className="text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center p-2 rounded-full"
+              className="text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center p-2 rounded-full -ml-2"
+              title="Quay lại"
             >
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
           )}
-          <span className="text-lg font-bold text-blue-600">ParkFlow Pro</span>
+          <Link href="/driver" className="text-lg font-bold text-blue-600 hover:text-blue-700 transition-colors">
+            ParkFlow Pro
+          </Link>
         </div>
-        <span className="text-sm text-gray-400">
-          Bước {currentIndex + 1}/{STEPS.length}
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-400">
+            Bước {currentIndex + 1}/{STEPS.length}
+          </span>
+          <div className="h-6 w-px bg-gray-200" />
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700 hidden sm:inline-block">
+              {user?.fullName}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                logout()
+                router.replace('/driver/auth')
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+            >
+              <span className="material-symbols-outlined text-[18px]">logout</span>
+              <span className="hidden sm:inline-block">Đăng xuất</span>
+            </button>
+          </div>
+        </div>
       </header>
 
       <main className="flex-grow w-full max-w-3xl mx-auto px-4 md:px-8 py-6">

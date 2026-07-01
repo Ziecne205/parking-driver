@@ -1,8 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/store'
 import { usePayDeposit } from '@/hooks/usePayDeposit'
+import { useMyReservations } from '@/hooks/useMyReservations'
+import { useCreatePayosLink, type PayosLink } from '@/hooks/usePayosLink'
 import type { CreateReservationResult } from '@/hooks/useReservations'
 import type { VehicleType, PaymentMethod } from '@/types/model'
 import type { BookFormValues } from './types'
@@ -14,10 +18,7 @@ interface ReadonlyDepositCheckoutProps {
   readonly onSuccess: () => void
 }
 
-const METHODS: { id: PaymentMethod; label: string; icon: string }[] = [
-  { id: 'QR', label: 'Mã QR', icon: 'qr_code_scanner' },
-  { id: 'Cash', label: 'Tiền mặt', icon: 'payments' },
-]
+
 
 function formatVnd(amount: number) {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' VND'
@@ -39,23 +40,31 @@ export function DepositCheckout({
   vehicleTypes,
   onSuccess,
 }: ReadonlyDepositCheckoutProps) {
-  const [method, setMethod] = useState<PaymentMethod>('QR')
-  const payDeposit = usePayDeposit()
+  const { user } = useAuthStore()
+
+  // Real PayOS QR — created once via react-query to avoid StrictMode double-fire.
+  const { data: payos, isError, error } = useCreatePayosLink({
+    type: 'DEPOSIT',
+    id: reservation.reservationId,
+  })
+
+  // Poll for payment success every 1.5s (even in background)
+  const { data: myRes, refetch, isRefetching } = useMyReservations(user?.id ?? '', {
+    refetchInterval: 1500,
+    refetchIntervalInBackground: true,
+  })
+
+  useEffect(() => {
+    const current = myRes?.find((r) => r.reservationId === reservation.reservationId)
+    if (current && (current.status === 'Confirmed' || current.status === 'CheckedIn')) {
+      toast.success('Thanh toán thành công!')
+      onSuccess()
+    }
+  }, [myRes, reservation.reservationId, onSuccess])
 
   const vtName = vehicleTypes.find((v) => v.id === values.vehicleTypeId)?.name ?? values.vehicleTypeId
 
-  const handleConfirm = async () => {
-    try {
-      await payDeposit.mutateAsync({
-        reservationId: reservation.reservationId,
-        paymentMethod: method,
-      })
-      onSuccess()
-    } catch (err: unknown) {
-      const e = err as { message?: string }
-      toast.error(e?.message ?? 'Thanh toán thất bại')
-    }
-  }
+  // Xóa hàm handleConfirm giả lập thanh toán
 
   return (
     <div className="flex flex-col gap-4">
@@ -102,79 +111,51 @@ export function DepositCheckout({
       {/* Payment method */}
       <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm flex flex-col gap-4">
         <h2 className="text-xl font-semibold text-gray-900">Phương thức thanh toán</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {METHODS.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setMethod(m.id)}
-              className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all ${
-                method === m.id
-                  ? 'border-blue-600 bg-blue-50'
-                  : 'border-gray-200 bg-white hover:bg-gray-50'
-              }`}
-            >
-              <span
-                className={`material-symbols-outlined text-3xl ${
-                  method === m.id ? 'text-blue-600' : 'text-gray-400'
-                }`}
-              >
-                {m.icon}
-              </span>
-              <span
-                className={`text-sm font-medium ${
-                  method === m.id ? 'text-blue-600' : 'text-gray-600'
-                }`}
-              >
-                {m.label}
-              </span>
-            </button>
-          ))}
-        </div>
+        
+        {/* PayOS QR */}
+        <div className="flex flex-col items-center gap-3 py-4">
+          <p className="text-sm text-gray-500">
+            Quét mã QR bằng ứng dụng ngân hàng để thanh toán tiền cọc.
+          </p>
 
-        {/* QR placeholder */}
-        {method === 'QR' && (
-          <div className="flex flex-col items-center gap-3 py-4">
-            <p className="text-sm text-gray-500">
-              Quét mã QR bằng ứng dụng ngân hàng để thanh toán.
-            </p>
-            <div className="w-44 h-44 bg-white border-2 border-gray-200 rounded-xl p-3 shadow-sm flex items-center justify-center relative">
-              <div className="absolute top-2 left-2 w-7 h-7 border-t-4 border-l-4 border-blue-600 rounded-tl" />
-              <div className="absolute top-2 right-2 w-7 h-7 border-t-4 border-r-4 border-blue-600 rounded-tr" />
-              <div className="absolute bottom-2 left-2 w-7 h-7 border-b-4 border-l-4 border-blue-600 rounded-bl" />
-              <div className="absolute bottom-2 right-2 w-7 h-7 border-b-4 border-r-4 border-blue-600 rounded-br" />
-              <span className="material-symbols-outlined text-6xl text-gray-300">qr_code_2</span>
+          {payos ? (
+            <>
+              <div className="w-48 h-48 bg-white border-2 border-gray-200 rounded-xl p-3 shadow-sm flex items-center justify-center">
+                <QRCodeSVG value={payos.qrCode} size={168} level="M" />
+              </div>
+              <a
+                href={payos.checkoutUrl}
+                className="text-xs text-blue-600 font-medium hover:underline"
+              >
+                Hoặc bấm vào đây để thanh toán qua cổng PayOS
+              </a>
+            </>
+          ) : isError ? (
+            <div className="w-full bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+              <p className="text-sm font-medium text-red-700">Lỗi tạo mã QR</p>
+              <p className="text-xs text-red-600 mt-0.5">
+                {error?.message ?? 'Đã xảy ra lỗi từ PayOS. Vui lòng thử lại.'}
+              </p>
             </div>
-            <p className="text-xs text-gray-400 flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm animate-spin">sync</span>
-              Đang chờ thanh toán...
-            </p>
-          </div>
-        )}
-
-        {method === 'Cash' && (
-          <div className="flex flex-col items-center gap-2 py-4">
-            <span className="material-symbols-outlined text-5xl text-green-500">payments</span>
-            <p className="text-sm text-gray-500 text-center">
-              Vui lòng thanh toán tiền mặt tại quầy thu phí. Nhấn xác nhận để hoàn tất đặt chỗ.
-            </p>
-          </div>
-        )}
+          ) : (
+            <div className="w-48 h-48 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400">
+              <span className="material-symbols-outlined text-4xl animate-spin">sync</span>
+              <span className="text-xs">Đang tạo mã QR…</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Confirm button */}
-      <div className="flex justify-end pt-2">
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={payDeposit.isPending}
-          className="px-6 py-2 rounded-xl text-base font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {payDeposit.isPending ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
-          {!payDeposit.isPending && (
-            <span className="material-symbols-outlined text-[20px]">check_circle</span>
-          )}
-        </button>
+      <div className="flex flex-col items-center gap-2 pt-4">
+        {isRefetching && (
+          <div className="flex items-center gap-2 text-blue-600 text-sm mb-2">
+            <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>
+            <span>Đang kiểm tra thanh toán...</span>
+          </div>
+        )}
+        <p className="text-xs text-gray-400 text-center">
+          Hệ thống sẽ tự động chuyển trang khi nhận được thanh toán.
+        </p>
       </div>
     </div>
   )

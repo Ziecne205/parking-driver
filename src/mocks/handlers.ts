@@ -644,7 +644,7 @@ export const handlers = [
       durationHours,
       totalFee,
       isPaid: false,
-      paymentMethods: ['Cash', 'QR'],
+      paymentMethods: ['QR'],
     })
   }),
 

@@ -1,8 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, Clock, Car, MapPin, AlertTriangle, X } from 'lucide-react'
+import { Calendar, Clock, Car, MapPin, AlertTriangle, X, CreditCard } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
+import { useMutation } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 import { RESERVATION_STATUS_LABELS } from '@/types/model'
+import type { PayosLink } from '@/hooks/usePayosLink'
 import type { ReadonlyBookingCardProps } from './types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -34,6 +38,17 @@ export function BookingCard({ reservation, onCancel, isCancelling }: ReadonlyBoo
   const [showQr, setShowQr] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
+  const createLink = useMutation({
+    mutationFn: (reservationId: string) =>
+      api.post<PayosLink>('/driver/payments/payos/create-link', {
+        type: 'DEPOSIT',
+        id: Number(reservationId),
+      }),
+    onSuccess: (res) => {
+      window.location.href = res.checkoutUrl
+    }
+  })
+
   const canCancel = CANCELLABLE_STATUSES.has(reservation.status)
   const statusStyle = STATUS_STYLES[reservation.status] ?? STATUS_STYLES.Fulfilled
   const statusLabel = RESERVATION_STATUS_LABELS[reservation.status] ?? reservation.status
@@ -63,7 +78,12 @@ export function BookingCard({ reservation, onCancel, isCancelling }: ReadonlyBoo
         <div className="flex items-start justify-between gap-2 mb-3">
           <div>
             <span className="text-xs text-gray-400 font-mono uppercase tracking-wide">Mã đặt chỗ</span>
-            <p className="font-mono font-bold text-blue-600 text-sm">#{reservation.reservationId}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-mono font-bold text-blue-600 text-sm">#{reservation.reservationId}</p>
+              <span className="text-[10px] text-gray-400">
+                ({formatDateTime(reservation.createdAt)})
+              </span>
+            </div>
           </div>
           <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusStyle}`}>
             {statusLabel}
@@ -94,7 +114,7 @@ export function BookingCard({ reservation, onCancel, isCancelling }: ReadonlyBoo
 
         {/* Action buttons */}
         <div className="flex gap-2 pt-3 border-t border-gray-100">
-          {(reservation.status === 'Confirmed' || reservation.status === 'Pending') && (
+          {(reservation.status === 'Confirmed' || reservation.status === 'CheckedIn') && (
             <button
               type="button"
               onClick={() => setShowQr(true)}
@@ -102,6 +122,17 @@ export function BookingCard({ reservation, onCancel, isCancelling }: ReadonlyBoo
             >
               <span className="material-symbols-outlined text-base">qr_code_2</span>
               Mã QR vào cổng
+            </button>
+          )}
+          {reservation.status === 'Pending' && (
+            <button
+              type="button"
+              onClick={() => createLink.mutate(reservation.reservationId)}
+              disabled={createLink.isPending}
+              className="flex-1 rounded-lg border border-transparent bg-blue-600 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              {createLink.isPending ? 'Đang mở...' : 'Thanh toán ngay'}
             </button>
           )}
           {canCancel && (
@@ -140,13 +171,9 @@ export function BookingCard({ reservation, onCancel, isCancelling }: ReadonlyBoo
             </div>
 
             <div className="flex flex-col items-center gap-3">
-              {/* QR placeholder */}
-              <div className="relative w-48 h-48 bg-white border border-gray-200 rounded-lg shadow-sm flex items-center justify-center">
-                <div className="absolute top-2 left-2 w-7 h-7 border-t-4 border-l-4 border-blue-600 rounded-tl" />
-                <div className="absolute top-2 right-2 w-7 h-7 border-t-4 border-r-4 border-blue-600 rounded-tr" />
-                <div className="absolute bottom-2 left-2 w-7 h-7 border-b-4 border-l-4 border-blue-600 rounded-bl" />
-                <div className="absolute bottom-2 right-2 w-7 h-7 border-b-4 border-r-4 border-blue-600 rounded-br" />
-                <span className="material-symbols-outlined text-6xl text-gray-300">qr_code_2</span>
+              {/* QR Code */}
+              <div className="w-48 h-48 bg-white border border-gray-200 rounded-lg shadow-sm flex items-center justify-center p-2">
+                <QRCodeSVG value={reservation.reservationId} size={170} level="M" />
               </div>
               <p className="text-xs text-gray-400 text-center">
                 Xuất trình mã này tại camera cổng vào

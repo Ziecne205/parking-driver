@@ -19,7 +19,7 @@ export const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
 }
 export type PaymentStatus = 'Pending' | 'Success' | 'Failed' | 'Refunded';
 export type PaymentType = 'Deposit' | 'Parking' | 'Penalty';
-export type PaymentMethod = 'Cash' | 'QR';
+export type PaymentMethod = 'QR';
 export type IncidentStatus = 'Open' | 'InProgress' | 'Resolved';
 export type IncidentType =
   | 'UNMAPPED_OCCUPANCY' | 'ABANDONED_SESSION' | 'EXIT_UNCLOSED'

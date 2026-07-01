@@ -73,6 +73,7 @@ export const ErrorCodes = {
   FORBIDDEN: 'FORBIDDEN',
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
   INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  ACCOUNT_DISABLED: 'ACCOUNT_DISABLED',
 
   // Validation
   VALIDATION_ERROR: 'VALIDATION_ERROR',
@@ -110,7 +111,8 @@ const ERROR_MESSAGES: Record<ErrorCode, string> = {
   UNAUTHORIZED: 'Vui lòng đăng nhập để tiếp tục',
   FORBIDDEN: 'Bạn không có quyền truy cập tài nguyên này',
   TOKEN_EXPIRED: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại',
-  INVALID_CREDENTIALS: 'Email hoặc mật khẩu không đúng',
+  INVALID_CREDENTIALS: 'Tài khoản hoặc mật khẩu không đúng',
+  ACCOUNT_DISABLED: 'Tài khoản đã bị vô hiệu hóa',
 
   // Validation
   VALIDATION_ERROR: 'Dữ liệu không hợp lệ',

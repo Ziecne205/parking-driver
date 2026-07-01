@@ -28,6 +28,7 @@ export function useAvailability() {
   return useQuery({
     queryKey: PARKING_INFO_KEY,
     queryFn: fetchParkingInfo,
+    refetchInterval: 30 * 1000, // realtime-ish availability; the only polling query
     select: (info): LotAvailability => ({
       byVehicleType: info.availabilityByVehicleType.map((v) => ({
         vehicleTypeName: v.vehicleTypeName,

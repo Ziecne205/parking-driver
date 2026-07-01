@@ -3,26 +3,12 @@
 // reads are typed here.
 import type { Reservation, User } from '@/types/model'
 
-/** Nested entities the BE serializes in full (JPA open-in-view). */
-export interface BeVehicleType {
-  vehicleTypeId: number
-  typeName: string
-  dimensions?: string | null
-}
-
-export interface BeUser {
-  userId: number
-  username: string
-  fullName?: string
-  email?: string
-  phoneNumber?: string
-}
-
-/** BE `Reservation` entity (com.parking.entity.Reservation). */
+/** BE `ReservationDTO` (flat — no nested User/VehicleType entity). */
 export interface BeReservation {
   reservationId: number
-  user?: BeUser | null
-  vehicleType?: BeVehicleType | null
+  userId?: number | null
+  vehicleTypeId?: number | null
+  vehicleTypeName?: string | null
   licensePlate: string
   expectedEntryTime: string
   expectedExitTime: string
@@ -74,18 +60,29 @@ export function mapProfile(p: BeProfile): User {
   }
 }
 
-/** BE Reservation entity -> FE Reservation (flat, string ids). */
+export function mapReservationStatus(status?: string | null): Reservation['status'] {
+  if (!status) return 'Pending'
+  const up = status.toUpperCase()
+  if (up === 'CONFIRMED') return 'Confirmed'
+  if (up === 'CHECKED_IN' || up === 'CHECKEDIN') return 'CheckedIn'
+  if (up === 'FULFILLED') return 'Fulfilled'
+  if (up === 'CANCELLED') return 'Cancelled'
+  if (up === 'EXPIRED') return 'Expired'
+  return 'Pending'
+}
+
+/** BE ReservationDTO -> FE Reservation (string ids). */
 export function mapReservation(r: BeReservation): Reservation {
   return {
     reservationId: String(r.reservationId),
-    userId: r.user ? String(r.user.userId) : undefined,
-    vehicleTypeId: r.vehicleType ? String(r.vehicleType.vehicleTypeId) : '',
-    vehicleTypeName: r.vehicleType?.typeName,
+    userId: r.userId != null ? String(r.userId) : undefined,
+    vehicleTypeId: r.vehicleTypeId != null ? String(r.vehicleTypeId) : '',
+    vehicleTypeName: r.vehicleTypeName ?? undefined,
     licensePlate: r.licensePlate,
     expectedEntryTime: r.expectedEntryTime,
     expectedExitTime: r.expectedExitTime,
     depositAmount: r.depositAmount,
-    status: r.status,
+    status: mapReservationStatus(r.status),
     createdAt: r.createdAt,
   }
 }

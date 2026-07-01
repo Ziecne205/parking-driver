@@ -1,6 +1,7 @@
 'use client'
 
 import type { VehicleType } from '@/types/model'
+import { QRCodeSVG } from 'qrcode.react'
 import type { BookFormValues } from './types'
 
 interface ReadonlyBookingConfirmationProps {
@@ -60,14 +61,10 @@ export function BookingConfirmation({
           <span className="text-lg font-bold text-blue-600 font-mono">#{reservationId}</span>
         </div>
 
-        {/* QR placeholder */}
+        {/* QR Code */}
         <div className="flex justify-center mb-4">
-          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 inline-block relative w-44 h-44 flex items-center justify-center">
-            <div className="absolute top-2 left-2 w-7 h-7 border-t-4 border-l-4 border-blue-600 rounded-tl" />
-            <div className="absolute top-2 right-2 w-7 h-7 border-t-4 border-r-4 border-blue-600 rounded-tr" />
-            <div className="absolute bottom-2 left-2 w-7 h-7 border-b-4 border-l-4 border-blue-600 rounded-bl" />
-            <div className="absolute bottom-2 right-2 w-7 h-7 border-b-4 border-r-4 border-blue-600 rounded-br" />
-            <span className="material-symbols-outlined text-6xl text-gray-300">qr_code_2</span>
+          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 inline-flex relative w-44 h-44 items-center justify-center">
+            <QRCodeSVG value={reservationId} size={150} level="M" />
           </div>
         </div>
         <p className="text-sm font-semibold text-gray-700 text-center">Mã QR để vào cổng</p>

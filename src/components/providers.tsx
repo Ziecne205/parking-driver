@@ -10,10 +10,12 @@ export function Providers({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 10 * 1000, // 10 seconds - matches real-time update interval
-            refetchInterval: 10 * 1000, // Auto-refetch every 10 seconds
+            staleTime: 30 * 1000,
+            // No global polling — only queries that need realtime data opt in via
+            // their own refetchInterval (e.g. parking availability). Avoids spamming
+            // the backend with repeated Users/Config/Pricing/Slot queries.
             refetchOnWindowFocus: true,
-            refetchOnMount: true, // Always refetch on mount
+            refetchOnMount: true,
             refetchOnReconnect: true,
             retry: 1,
             throwOnError: false,

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { ArrowLeft, ListFilter } from 'lucide-react'
 import { useMyReservations } from '@/hooks/useMyReservations'
 import { useCancelReservation } from '@/hooks/useReservations'
@@ -20,12 +21,36 @@ const FILTER_LABELS: Record<ReservationStatus | 'all', string> = {
 
 export function MyBookings({ userId, onBack }: ReadonlyMyBookingsProps) {
   const [filter, setFilter] = useState<ReservationStatus | 'all'>('all')
-  const { data: reservations = [], isLoading } = useMyReservations(userId)
+  const [isPolling, setIsPolling] = useState(false)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  useEffect(() => {
+    if (searchParams.has('code') || searchParams.has('cancel')) {
+      setIsPolling(true)
+      // Clean up the URL to hide ugly PayOS params
+      router.replace(pathname ?? '/driver/my-bookings')
+      
+      // Stop polling after 10 seconds
+      const timer = setTimeout(() => setIsPolling(false), 10000)
+      return () => clearTimeout(timer)
+    }
+  }, [searchParams, router, pathname])
+
+  const { data: reservations = [], isLoading } = useMyReservations(userId, {
+    // Poll for a bit if we just returned from PayOS to await webhook
+    refetchInterval: isPolling ? 2000 : undefined,
+  })
+
   const { mutate: cancelReservation, isPending: isCancelling, variables: cancellingId } = useCancelReservation()
 
   const filtered = filter === 'all'
     ? reservations
     : reservations.filter((r) => r.status === filter)
+
+  // Sort by createdAt descending
+  filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   return (
     <div className="min-h-screen bg-gray-50">

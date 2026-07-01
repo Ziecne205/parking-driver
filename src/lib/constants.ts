@@ -4,6 +4,13 @@ export const PRICING = {
   BASE_RATE: 10000, // VND mỗi giờ (giá phẳng)
 } as const;
 
+// Đặt chỗ trực tuyến của tài xế chỉ áp dụng cho xe hơi (ô tô, 4 bánh).
+// BE trả tên loại xe dạng "Ô tô 4 chỗ" / "Ô tô 7 chỗ" / "Xe máy", nên khớp theo
+// tiền tố "ô tô" thay vì so khớp tuyệt đối một tên cố định.
+export function isCarVehicleType(name: string): boolean {
+  return name.trim().toLowerCase().includes('ô tô');
+}
+
 export const REFRESH_INTERVAL = 10000; // 10s — real-time refetch interval
 
 
@@ -46,6 +53,5 @@ export const INCIDENT_STATUS_LABELS: Record<string, string> = {
 };
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  Cash: 'Tiền mặt',
   QR: 'Mã QR',
 };
