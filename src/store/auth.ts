@@ -83,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
       register: async (fields) => {
         set({ isLoading: true })
         try {
-          // BE RegisterRequest: { username, password, fullName, phoneNumber, email, roleName }.
+          // BE RegisterRequest: { username, password, fullName, phoneNumber, email }.
           // Using email as username (Driver form has no separate username field).
           const res = await api.post<LoginResponse>('/auth/register', {
             username: fields.email,
@@ -91,7 +91,6 @@ export const useAuthStore = create<AuthState>()(
             fullName: fields.fullName,
             phoneNumber: fields.phone,
             email: fields.email,
-            roleName: 'Driver',
           })
           setToken(res.token)
           const registeredUser: User = {
