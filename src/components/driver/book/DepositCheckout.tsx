@@ -1,20 +1,15 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { QRCodeSVG } from 'qrcode.react'
-import { toast } from 'sonner'
-import { useAuthStore } from '@/store'
-import { useMyReservations } from '@/hooks/useMyReservations'
 import { useCreatePayosLink } from '@/hooks/usePayosLink'
 import type { CreateReservationResult } from '@/hooks/useReservations'
 import type { VehicleType } from '@/types/model'
+import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
 import type { BookFormValues } from './types'
 
 interface ReadonlyDepositCheckoutProps {
   readonly reservation: CreateReservationResult
   readonly values: BookFormValues
   readonly vehicleTypes: VehicleType[]
-  readonly onSuccess: () => void
 }
 
 function formatVnd(amount: number) {
@@ -35,44 +30,21 @@ export function DepositCheckout({
   reservation,
   values,
   vehicleTypes,
-  onSuccess,
 }: ReadonlyDepositCheckoutProps) {
-  const { user } = useAuthStore()
-
-  // FE-4: guard so onSuccess / toast fire exactly once even while polling continues
-  const successFired = useRef(false)
-
   const { data: payos, isError, error, isLoading: isPayosLoading } = useCreatePayosLink({
     type: 'DEPOSIT',
     id: reservation.reservationId,
   })
 
-  // Poll for payment confirmation every 3s.
-  // When the user pays via the PayOS link (opens in same tab or new tab), the BE
-  // webhook marks the reservation Confirmed. This poll detects it and advances the wizard.
-  const { data: myRes, isRefetching } = useMyReservations(user?.id ?? '', {
-    refetchInterval: 3000,
-    refetchIntervalInBackground: true,
-  })
-
-  useEffect(() => {
-    if (successFired.current) return
-    // Reservation model uses string IDs; createResult uses numeric — compare via String()
-    const current = myRes?.find((r) => r.reservationId === String(reservation.reservationId))
-    if (current && (current.status === 'Confirmed' || current.status === 'CheckedIn')) {
-      successFired.current = true
-      toast.success('Thanh toán thành công!')
-      onSuccess()
-    }
-  }, [myRes, reservation.reservationId, onSuccess])
-
   const vtName = vehicleTypes.find((v) => v.id === values.vehicleTypeId)?.name ?? values.vehicleTypeId
 
-  // Store reservationId in sessionStorage so the /payment/return page can signal
-  // success back even after a full-page PayOS redirect.
+  // Store reservationId so /driver/payment/return — the single place that confirms the
+  // deposit — can pick it up after the full-page PayOS redirect. No polling here: the
+  // return page is the one authority that flips the reservation to Confirmed and shows
+  // the success banner on my-bookings.
   function handleOpenPayos() {
     if (!payos) return
-    sessionStorage.setItem('pending_deposit_reservation', String(reservation.reservationId))
+    sessionStorage.setItem(PENDING_DEPOSIT_KEY, reservation.reservationId)
     window.location.href = payos.checkoutUrl
   }
 
@@ -153,19 +125,6 @@ export function DepositCheckout({
             </p>
           </div>
         ) : null}
-      </div>
-
-      {/* Polling indicator */}
-      <div className="flex flex-col items-center gap-2 pt-2">
-        {isRefetching && (
-          <div className="flex items-center gap-2 text-blue-600 text-sm">
-            <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>
-            <span>Đang kiểm tra trạng thái thanh toán...</span>
-          </div>
-        )}
-        <p className="text-xs text-gray-400 text-center">
-          Hệ thống tự động chuyển sang bước xác nhận khi nhận được thanh toán.
-        </p>
       </div>
     </div>
   )

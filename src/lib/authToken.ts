@@ -18,3 +18,18 @@ export function setToken(token: string | null): void {
   if (token) window.localStorage.setItem(KEY, token)
   else window.localStorage.removeItem(KEY)
 }
+
+// The auth store registers a handler here so a rejected JWT (401, detected in lib/api)
+// can trigger a full logout — without lib/api importing the store, which would recreate
+// the circular dependency this module exists to avoid.
+let onUnauthorized: (() => void) | null = null
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler
+}
+
+/** Called on a 401. Clears the bad token, then lets the store reset auth state. */
+export function notifyUnauthorized(): void {
+  setToken(null)
+  onUnauthorized?.()
+}

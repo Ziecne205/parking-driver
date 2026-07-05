@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { User } from '@/types/model'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
-import { setToken } from '@/lib/authToken'
+import { setToken, setUnauthorizedHandler } from '@/lib/authToken'
 import { getQueryClient } from '@/lib/queryClient'
 import { mapProfile, type BeProfile } from '@/lib/beMappers'
 

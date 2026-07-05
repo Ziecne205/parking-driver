@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { useAuthStore } from '@/store'
 import type { User } from '@/types/model'
 import { mapProfile, type BeProfile } from '@/lib/beMappers'
+import { queryKeys } from '@/lib/constants'
 import type { AccountFormFields } from '@/components/driver/profile/types'
 
 // BE: GET/PUT /driver/profile — server resolves the user from the JWT, so `userId` is only
@@ -14,7 +15,7 @@ const FALLBACK: User = { id: '', email: '', fullName: '' }
 
 export function useProfile(userId: string) {
   const { data, isLoading } = useQuery<User>({
-    queryKey: ['profile', userId],
+    queryKey: queryKeys.profile(userId),
     queryFn: async () => mapProfile(await api.get<BeProfile>('/driver/profile')),
     enabled: !!userId,
   })
@@ -35,7 +36,7 @@ export function useUpdateProfile(userId: string) {
         }),
       ),
     onSuccess: (updated) => {
-      queryClient.setQueryData(['profile', userId], updated)
+      queryClient.setQueryData(queryKeys.profile(userId), updated)
       if (user) setUser({ ...user, fullName: updated.fullName, phone: updated.phone, email: updated.email })
       toast.success('Đã lưu thông tin')
     },

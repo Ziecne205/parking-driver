@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api, type AppError } from '@/lib/api'
+import { queryKeys } from '@/lib/constants'
 
 /** BE PayosLinkResponse from POST /driver/payments/payos/create-link. */
 export interface PayosLink {
@@ -11,10 +12,13 @@ export interface PayosLink {
 
 export interface CreatePayosLinkInput {
   type: 'DEPOSIT' | 'PARKING'
-  /** Numeric reservation ID (DEPOSIT) or session ID (PARKING).
-   *  Kept as number throughout to avoid silent NaN from Number() conversion (FE-11). */
-  id: number
+  /** String reservation ID (DEPOSIT) or session ID (PARKING) — the model-boundary type.
+   *  Converted to a number only at the API call below, where the BE expects numeric. */
+  id: string
 }
+
+/** Parse a model-boundary string id into the numeric id the BE expects (NaN if invalid). */
+const toNumericId = (id?: string) => (id ? Number(id) : NaN)
 
 /**
  * Create a real PayOS payment link + QR. Needs PayOS keys configured on the BE.
@@ -23,18 +27,19 @@ export interface CreatePayosLinkInput {
  */
 export function useCreatePayosLink(input?: CreatePayosLinkInput) {
   return useQuery<PayosLink, AppError>({
-    queryKey: ['payos-link', input?.type, input?.id],
+    queryKey: queryKeys.payosLink(input?.type ?? '', input?.id ?? ''),
     queryFn: () => {
-      // FE-11: guard against non-finite IDs before hitting the API
-      if (!input || !Number.isFinite(input.id)) {
+      const numericId = toNumericId(input?.id)
+      // Guard against non-finite IDs before hitting the API
+      if (!input || !Number.isFinite(numericId)) {
         throw new Error('Invalid reservation ID — cannot create PayOS link')
       }
       return api.post<PayosLink>('/driver/payments/payos/create-link', {
         type: input.type,
-        id: input.id,
+        id: numericId,
       })
     },
-    enabled: !!input && Number.isFinite(input?.id),
+    enabled: !!input && Number.isFinite(toNumericId(input?.id)),
     staleTime: Infinity, // don't refetch — same orderCode would be rejected by PayOS
   })
 }

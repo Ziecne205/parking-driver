@@ -29,5 +29,5 @@ export default function DriverBookPage() {
     )
   }
 
-  return <BookFlow userId={user.id} onDone={() => router.push('/driver')} />
+  return <BookFlow userId={user.id} />
 }

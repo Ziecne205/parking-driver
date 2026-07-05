@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { LotAvailability, VehicleType } from '@/types/model'
 import type { BeParkingInfo } from '@/lib/beMappers'
+import { queryKeys } from '@/lib/constants'
 
 // The driver app has a single public source of truth: GET /driver/parking-info.
 // It returns both the vehicle-type catalogue and live availability, so useVehicleTypes
 // and useAvailability share one cache entry (same queryKey/queryFn) and just `select`
 // different views of it.
-const PARKING_INFO_KEY = ['parking-info'] as const
+const PARKING_INFO_KEY = queryKeys.parkingInfo
 const fetchParkingInfo = () => api.get<BeParkingInfo>('/driver/parking-info')
 
 /** Vehicle-type catalogue derived from parking-info (driver can't reach /manager/vehicle-types). */

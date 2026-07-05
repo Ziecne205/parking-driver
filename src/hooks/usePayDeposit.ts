@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type AppError } from '@/lib/api'
+import { queryKeys } from '@/lib/constants'
 import type { PaymentMethod } from '@/types/model'
 
 export interface PayDepositInput {
@@ -22,8 +23,8 @@ export function usePayDeposit() {
       return { success: true }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['parking-info'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.myReservations })
+      queryClient.invalidateQueries({ queryKey: queryKeys.parkingInfo })
     },
   })
 }

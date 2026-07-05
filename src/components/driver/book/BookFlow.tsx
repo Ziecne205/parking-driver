@@ -7,23 +7,24 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store'
 import { useVehicleTypes } from '@/hooks/useAvailability'
 import { useCancelReservation, type CreateReservationResult } from '@/hooks/useReservations'
+import { queryKeys } from '@/lib/constants'
 import { BookForm } from './BookForm'
 import { DepositCheckout } from './DepositCheckout'
-import { BookingConfirmation } from './BookingConfirmation'
 import type { BookStep, BookFormValues } from './types'
 
 interface ReadonlyBookFlowProps {
   readonly userId?: string
-  readonly onDone: () => void
 }
 
+// The wizard ends at 'payment': paying redirects out to PayOS, and the deposit is
+// confirmed on /driver/payment/return, which lands the user on my-bookings with a
+// success banner. So there is no in-wizard 'confirmation' step to reach.
 const STEPS: { key: BookStep; label: string }[] = [
   { key: 'form', label: 'Chọn chỗ' },
   { key: 'payment', label: 'Thanh toán' },
-  { key: 'confirmation', label: 'Hoàn tất' },
 ]
 
-export function BookFlow({ userId, onDone }: ReadonlyBookFlowProps) {
+export function BookFlow({ userId }: ReadonlyBookFlowProps) {
   const router = useRouter()
   const { user, logout } = useAuthStore()
   const queryClient = useQueryClient()
@@ -44,11 +45,11 @@ export function BookFlow({ userId, onDone }: ReadonlyBookFlowProps) {
     if (createResult?.reservationId) {
       setIsBackingOut(true)
       try {
-        await cancelReservation(String(createResult.reservationId))
+        await cancelReservation(createResult.reservationId)
       } catch {
         // Cancellation best-effort — don't block the user
       }
-      queryClient.removeQueries({ queryKey: ['payos-link', 'DEPOSIT', createResult.reservationId] })
+      queryClient.removeQueries({ queryKey: queryKeys.payosLink('DEPOSIT', createResult.reservationId) })
       setIsBackingOut(false)
     }
     setCreateResult(null)
@@ -171,17 +172,6 @@ export function BookFlow({ userId, onDone }: ReadonlyBookFlowProps) {
             reservation={createResult}
             values={formValues}
             vehicleTypes={vehicleTypes}
-            onSuccess={() => setStep('confirmation')}
-          />
-        )}
-
-        {step === 'confirmation' && createResult && formValues && (
-          <BookingConfirmation
-            reservationId={createResult.reservationId}
-            values={formValues}
-            vehicleTypes={vehicleTypes}
-            depositAmount={createResult.depositAmount}
-            onDone={onDone}
           />
         )}
       </main>

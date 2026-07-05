@@ -4,6 +4,21 @@ export const PRICING = {
   BASE_RATE: 10000, // VND mỗi giờ (giá phẳng)
 } as const;
 
+// sessionStorage key that bridges DepositCheckout -> /driver/payment/return across the
+// full-page PayOS redirect. Shared so the writer and reader can't drift apart.
+export const PENDING_DEPOSIT_KEY = 'pending_deposit_reservation';
+
+// Single source of truth for React Query keys. Hooks build keys from here so an
+// invalidation can never silently miss a query because a literal was mistyped.
+export const queryKeys = {
+  parkingInfo: ['parking-info'] as const,
+  /** Prefix — matches every per-user my-reservations query on invalidate. */
+  myReservations: ['my-reservations'] as const,
+  myReservationsFor: (userId: string) => ['my-reservations', userId] as const,
+  profile: (userId: string) => ['profile', userId] as const,
+  payosLink: (type: string, id: string) => ['payos-link', type, id] as const,
+} as const;
+
 // Đặt chỗ trực tuyến của tài xế chỉ áp dụng cho xe hơi (ô tô, 4 bánh).
 // BE trả tên loại xe dạng "Ô tô 4 chỗ" / "Ô tô 7 chỗ" / "Xe máy", nên khớp theo
 // tiền tố "ô tô" thay vì so khớp tuyệt đối một tên cố định.
