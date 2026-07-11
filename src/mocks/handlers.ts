@@ -1,3 +1,8 @@
+// ⚠️ DEAD CODE — NOT WIRED UP. MSW is never started (see providers.tsx: "No mocking
+// initialisation"), so none of these handlers run. They also predate the real backend and
+// use legacy paths (e.g. /api/reservations, /api/sessions) that DIVERGE from the live BE
+// routes (/api/driver/reservations, /api/driver/sessions). Kept only for reference/local
+// experiments — do NOT treat as the API contract. Source of truth = the Spring Boot controllers.
 import { http, HttpResponse } from 'msw'
 import {
   VEHICLE_TYPES,
