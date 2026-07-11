@@ -132,3 +132,13 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 )
+
+// A rejected JWT (401, detected in lib/api) resets auth state here so protected pages
+// route back to login instead of looping on failed requests. The token itself was
+// already cleared by notifyUnauthorized(); we only reset store + cache once.
+setUnauthorizedHandler(() => {
+  if (!useAuthStore.getState().isAuthenticated) return
+  getQueryClient().clear()
+  useAuthStore.setState({ user: null, isAuthenticated: false })
+  toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại')
+})
