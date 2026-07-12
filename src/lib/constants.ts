@@ -17,6 +17,7 @@ export const queryKeys = {
   myReservationsFor: (userId: string) => ['my-reservations', userId] as const,
   profile: (userId: string) => ['profile', userId] as const,
   payosLink: (type: string, id: string) => ['payos-link', type, id] as const,
+  sessionHistory: ['driver-session-history'] as const,
 } as const;
 
 // Hệ thống chỉ quản lý bãi đỗ ô tô. Giữ lại filter theo tiền tố "ô tô" như một lớp

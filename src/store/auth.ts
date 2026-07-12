@@ -11,6 +11,7 @@ import { mapProfile, type BeProfile } from '@/lib/beMappers'
 interface LoginResponse {
   token: string
   username: string
+  roleName: string
 }
 
 function errMessage(error: unknown, fallback: string): string {
@@ -63,6 +64,11 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true })
         try {
           const res = await api.post<LoginResponse>('/auth/login', { username, password })
+          // BẢO MẬT: app tài xế CHỈ dành cho tài khoản Driver. Từ chối tài khoản nội bộ
+          // (Staff/Manager/Admin) — họ phải dùng cổng quản trị (parking-fe). Không lưu token.
+          if ((res.roleName ?? '').toUpperCase() !== 'DRIVER') {
+            throw new Error('Tài khoản này không phải tài khoản tài xế. Vui lòng dùng cổng quản trị.')
+          }
           setToken(res.token)
           // Seed the user with the username; real fullName is filled in below
           // by fetching /driver/profile so the home page greets with the correct name.

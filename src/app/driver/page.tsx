@@ -32,6 +32,7 @@ export default function DriverHome() {
   const navItems = [
     { label: 'Đặt chỗ', icon: 'local_parking', action: () => router.push('/driver/book'), enabled: true },
     { label: 'Đặt chỗ của tôi', icon: 'receipt_long', action: () => router.push('/driver/my-bookings'), enabled: true },
+    { label: 'Đánh giá', icon: 'rate_review', action: () => router.push('/driver/feedback'), enabled: true },
     { label: 'Hồ sơ', icon: 'account_circle', action: () => router.push('/driver/profile'), enabled: true },
   ]
 
