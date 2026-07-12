@@ -35,13 +35,6 @@ interface AuthState {
   _hasHydrated: boolean
   _setHasHydrated: (value: boolean) => void
   login: (username: string, password: string) => Promise<void>
-  register: (fields: {
-    fullName: string
-    phone: string
-    email: string
-    password: string
-    licensePlate?: string
-  }) => Promise<void>
   /** Register step 1: send an OTP to the email. Returns the masked email (e.g. n***@gmail.com). */
   registerSendOtp: (fields: RegisterOtpFields) => Promise<string>
   /** Register step 2: verify the OTP, create the account, and log in. */
@@ -94,35 +87,6 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           set({ isLoading: false })
           toast.error(errMessage(error, 'Đăng nhập thất bại'))
-          throw error
-        }
-      },
-
-      register: async (fields) => {
-        set({ isLoading: true })
-        try {
-          // BE RegisterRequest: { username, password, fullName, phoneNumber, email }.
-          // Using email as username (Driver form has no separate username field).
-          const res = await api.post<LoginResponse>('/auth/register', {
-            username: fields.email,
-            password: fields.password,
-            fullName: fields.fullName,
-            phoneNumber: fields.phone,
-            email: fields.email,
-          })
-          setToken(res.token)
-          const registeredUser: User = {
-            id: res.username,
-            email: fields.email,
-            phone: fields.phone,
-            fullName: fields.fullName,
-            status: 'Active',
-          }
-          set({ user: registeredUser, isAuthenticated: true, isLoading: false })
-          toast.success('Đăng ký thành công')
-        } catch (error) {
-          set({ isLoading: false })
-          toast.error(errMessage(error, 'Đăng ký thất bại'))
           throw error
         }
       },
