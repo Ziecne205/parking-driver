@@ -10,14 +10,12 @@ import type {
 
 export const VEHICLE_TYPES: VehicleType[] = [
   { id: 'vt-car', name: 'Ô tô' },
-  { id: 'vt-moto', name: 'Xe máy' },
 ]
 
 // Mock outstanding (confirmed bookings not yet entered) per vehicle type.
 // Real value comes from the reservations slice; hardcoded here for headroom math.
 const OUTSTANDING: Record<string, number> = {
   'vt-car': 3,
-  'vt-moto': 2,
 }
 
 interface FloorSpec {
@@ -30,7 +28,6 @@ interface FloorSpec {
 const LAYOUT: FloorSpec[] = [
   { floor: 1, vehicleTypeId: 'vt-car', zones: ['A', 'B'], perZone: 10 },
   { floor: -1, vehicleTypeId: 'vt-car', zones: ['A'], perZone: 10 },
-  { floor: 2, vehicleTypeId: 'vt-moto', zones: ['A', 'B'], perZone: 15 },
 ]
 
 function deterministicStatus(seq: number): SlotStatus {

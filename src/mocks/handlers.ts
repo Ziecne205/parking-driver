@@ -36,7 +36,6 @@ const usersStore: Record<string, UserProfile> = Object.fromEntries(
 const vehiclesStore: Record<string, SavedVehicle[]> = {
   'u-driver': [
     { id: 'sv-1', licensePlate: '29A-123.45', vehicleTypeId: 'vt-car' },
-    { id: 'sv-2', licensePlate: '30G-789.12', vehicleTypeId: 'vt-moto' },
   ],
 }
 

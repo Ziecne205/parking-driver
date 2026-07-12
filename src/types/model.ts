@@ -29,7 +29,7 @@ export type GateType = 'Entry' | 'Exit';
 // ── Core entities ───────────────────────────────────────────────────────────────
 export interface VehicleType {
   id: string;
-  name: string; // "Ô tô" | "Xe máy" | "Xe tải"
+  name: string; // chỉ ô tô, ví dụ "Ô tô"
 }
 
 export interface Slot {

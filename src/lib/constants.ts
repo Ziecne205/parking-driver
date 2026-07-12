@@ -19,9 +19,8 @@ export const queryKeys = {
   payosLink: (type: string, id: string) => ['payos-link', type, id] as const,
 } as const;
 
-// Đặt chỗ trực tuyến của tài xế chỉ áp dụng cho xe hơi (ô tô, 4 bánh).
-// BE trả tên loại xe dạng "Ô tô 4 chỗ" / "Ô tô 7 chỗ" / "Xe máy", nên khớp theo
-// tiền tố "ô tô" thay vì so khớp tuyệt đối một tên cố định.
+// Hệ thống chỉ quản lý bãi đỗ ô tô. Giữ lại filter theo tiền tố "ô tô" như một lớp
+// phòng thủ (khớp "Ô tô", "Ô tô 4 chỗ"...) phòng khi dữ liệu còn sót loại xe khác.
 export function isCarVehicleType(name: string): boolean {
   return name.trim().toLowerCase().includes('ô tô');
 }

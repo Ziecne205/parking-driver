@@ -1,7 +1,7 @@
 import type { BookingQuota } from '@/types/model'
 
-// Seed quotas covering both vehicle types across several windows.
-// vehicleTypeId matches VEHICLE_TYPES in lots.ts: 'vt-car' | 'vt-moto'
+// Seed quotas covering the car vehicle type across several windows.
+// vehicleTypeId matches VEHICLE_TYPES in lots.ts: 'vt-car'
 export const mockQuotas: BookingQuota[] = [
   // Ô tô
   {
@@ -34,39 +34,6 @@ export const mockQuotas: BookingQuota[] = [
     windowStart: '16:00',
     windowEnd: '18:00',
     quotaPercent: 60,
-    isActive: true,
-  },
-  // Xe máy
-  {
-    quotaId: 'quota-5',
-    vehicleTypeId: 'vt-moto',
-    windowStart: '06:00',
-    windowEnd: '08:00',
-    quotaPercent: 25,
-    isActive: true,
-  },
-  {
-    quotaId: 'quota-6',
-    vehicleTypeId: 'vt-moto',
-    windowStart: '08:00',
-    windowEnd: '10:00',
-    quotaPercent: 60,
-    isActive: true,
-  },
-  {
-    quotaId: 'quota-7',
-    vehicleTypeId: 'vt-moto',
-    windowStart: '10:00',
-    windowEnd: '12:00',
-    quotaPercent: 20,
-    isActive: false,
-  },
-  {
-    quotaId: 'quota-8',
-    vehicleTypeId: 'vt-moto',
-    windowStart: '16:00',
-    windowEnd: '18:00',
-    quotaPercent: 70,
     isActive: true,
   },
 ]

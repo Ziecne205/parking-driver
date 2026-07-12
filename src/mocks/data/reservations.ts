@@ -3,7 +3,7 @@ import type { Reservation } from '@/types/model'
 
 // userId '1' is the mock Driver (see auth handler — mock login returns id:'1' for driver role).
 // Active statuses (count toward quota): Pending, Confirmed, CheckedIn.
-// Seeded so a new "Ô tô" booking hits the quota cap (→ 409) while "Xe máy" stays open.
+// Seeded so a new "Ô tô" booking in a busy window hits the quota cap (→ 409).
 export const mockReservations: Reservation[] = [
   {
     reservationId: 'res-1', vehicleTypeId: 'vt-car', vehicleTypeName: 'Ô tô',
@@ -49,10 +49,5 @@ export const mockReservations: Reservation[] = [
     reservationId: 'res-9', vehicleTypeId: 'vt-car', vehicleTypeName: 'Ô tô',
     licensePlate: '51B-10009', expectedEntryTime: '2026-06-14T08:00:00', expectedExitTime: '2026-06-14T10:00:00',
     depositAmount: 4000, status: 'Expired', createdAt: '2026-06-14T06:00:00', userId: '1',
-  },
-  {
-    reservationId: 'res-10', vehicleTypeId: 'vt-moto', vehicleTypeName: 'Xe máy',
-    licensePlate: '59X1-22222', expectedEntryTime: '2026-06-15T09:00:00', expectedExitTime: '2026-06-15T11:00:00',
-    depositAmount: 1000, status: 'Confirmed', createdAt: '2026-06-15T07:50:00', userId: '1',
   },
 ]
