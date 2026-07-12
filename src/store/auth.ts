@@ -17,6 +17,14 @@ function errMessage(error: unknown, fallback: string): string {
   return (error as { message?: string })?.message || fallback
 }
 
+/** Fields collected by the driver register form (step 1) and reused when verifying (step 2). */
+interface RegisterOtpFields {
+  fullName: string
+  phone: string
+  email: string
+  password: string
+}
+
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
@@ -33,6 +41,10 @@ interface AuthState {
     password: string
     licensePlate?: string
   }) => Promise<void>
+  /** Register step 1: send an OTP to the email. Returns the masked email (e.g. n***@gmail.com). */
+  registerSendOtp: (fields: RegisterOtpFields) => Promise<string>
+  /** Register step 2: verify the OTP, create the account, and log in. */
+  registerVerify: (fields: RegisterOtpFields, otp: string) => Promise<void>
   logout: () => void
   setUser: (user: User) => void
 }
@@ -105,6 +117,50 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           set({ isLoading: false })
           toast.error(errMessage(error, 'Đăng ký thất bại'))
+          throw error
+        }
+      },
+
+      registerSendOtp: async (fields) => {
+        set({ isLoading: true })
+        try {
+          // BE trả về email đã che (vd "ngu***@gmail.com") trong `data`. Username = email.
+          const masked = await api.post<string>('/auth/register/send-otp', {
+            username: fields.email,
+            password: fields.password,
+            fullName: fields.fullName,
+            phoneNumber: fields.phone,
+            email: fields.email,
+          })
+          set({ isLoading: false })
+          return masked
+        } catch (error) {
+          set({ isLoading: false })
+          toast.error(errMessage(error, 'Không gửi được mã OTP'))
+          throw error
+        }
+      },
+
+      registerVerify: async (fields, otp) => {
+        set({ isLoading: true })
+        try {
+          const res = await api.post<LoginResponse>('/auth/register/verify', {
+            email: fields.email,
+            otp,
+          })
+          setToken(res.token)
+          const registeredUser: User = {
+            id: res.username,
+            email: fields.email,
+            phone: fields.phone,
+            fullName: fields.fullName,
+            status: 'Active',
+          }
+          set({ user: registeredUser, isAuthenticated: true, isLoading: false })
+          toast.success('Đăng ký thành công')
+        } catch (error) {
+          set({ isLoading: false })
+          toast.error(errMessage(error, 'Xác thực OTP thất bại'))
           throw error
         }
       },

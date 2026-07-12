@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useCreatePayosLink } from '@/hooks/usePayosLink'
 import type { CreateReservationResult } from '@/hooks/useReservations'
 import type { VehicleType } from '@/types/model'
@@ -35,6 +36,14 @@ export function DepositCheckout({
     type: 'DEPOSIT',
     id: reservation.reservationId,
   })
+
+  // Surface the real reason in the console — the on-screen card only shows a short
+  // message, and this flow is easy to misdiagnose (403 role vs. PayOS config vs. gateway).
+  useEffect(() => {
+    if (isError) {
+      console.error('[PayOS] Không thể tạo liên kết thanh toán:', error)
+    }
+  }, [isError, error])
 
   const vtName = vehicleTypes.find((v) => v.id === values.vehicleTypeId)?.name ?? values.vehicleTypeId
 

@@ -9,13 +9,18 @@ export interface DriverRegisterFields {
   phone: string
   email: string
   password: string
-  licensePlate?: string
+  confirmPassword: string
 }
 
 export interface DriverLoginProps {
   readonly onSwitchToRegister: () => void
+  readonly onSwitchToForgot: () => void
 }
 
 export interface DriverRegisterProps {
+  readonly onSwitchToLogin: () => void
+}
+
+export interface DriverForgotPasswordProps {
   readonly onSwitchToLogin: () => void
 }

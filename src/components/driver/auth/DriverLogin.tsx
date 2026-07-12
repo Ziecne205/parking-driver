@@ -15,7 +15,7 @@ const schema = z.object({
   remember: z.boolean().optional(),
 })
 
-export function DriverLogin({ onSwitchToRegister }: DriverLoginProps) {
+export function DriverLogin({ onSwitchToRegister, onSwitchToForgot }: DriverLoginProps) {
   const [showPassword, setShowPassword] = useState(false)
   const { login, isLoading } = useAuthStore()
   const router = useRouter()
@@ -123,9 +123,13 @@ export function DriverLogin({ onSwitchToRegister }: DriverLoginProps) {
               Ghi nhớ đăng nhập
             </span>
           </label>
-          <a href="#" className="text-sm text-[#0058be] hover:underline font-medium transition-colors">
+          <button
+            type="button"
+            onClick={onSwitchToForgot}
+            className="text-sm text-[#0058be] hover:underline font-medium transition-colors"
+          >
             Quên mật khẩu?
-          </a>
+          </button>
         </div>
 
         <button

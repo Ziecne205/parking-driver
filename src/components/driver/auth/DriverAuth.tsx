@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { DriverLogin } from './DriverLogin'
 import { DriverRegister } from './DriverRegister'
+import { DriverForgotPassword } from './DriverForgotPassword'
 
-type Tab = 'login' | 'register'
+type Tab = 'login' | 'register' | 'forgot'
 
 export function DriverAuth() {
   const [tab, setTab] = useState<Tab>('login')
@@ -53,11 +54,14 @@ export function DriverAuth() {
             <span className="text-[#0058be] text-xl font-semibold">ParkFlow Pro</span>
           </div>
 
-          {tab === 'login' ? (
-            <DriverLogin onSwitchToRegister={() => setTab('register')} />
-          ) : (
-            <DriverRegister onSwitchToLogin={() => setTab('login')} />
+          {tab === 'login' && (
+            <DriverLogin
+              onSwitchToRegister={() => setTab('register')}
+              onSwitchToForgot={() => setTab('forgot')}
+            />
           )}
+          {tab === 'register' && <DriverRegister onSwitchToLogin={() => setTab('login')} />}
+          {tab === 'forgot' && <DriverForgotPassword onSwitchToLogin={() => setTab('login')} />}
         </div>
       </div>
 
