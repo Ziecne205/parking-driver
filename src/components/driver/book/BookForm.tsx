@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, type MutableRefObject } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -82,11 +82,13 @@ type FormValues = z.infer<typeof schema>
 interface ReadonlyBookFormProps {
   readonly userId?: string
   readonly onSuccess: (result: CreateReservationResult, values: BookFormValues) => void
+  /** Lets the parent step indicator trigger this form's validate-then-submit. */
+  readonly submitRef?: MutableRefObject<(() => void) | null>
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function BookForm({ userId, onSuccess }: ReadonlyBookFormProps) {
+export function BookForm({ userId, onSuccess, submitRef }: ReadonlyBookFormProps) {
   const { data: vehicleTypes = [], isLoading: isVehicleTypesLoading } = useVehicleTypes()
   const createReservation = useCreateReservation()
 
@@ -144,6 +146,7 @@ export function BookForm({ userId, onSuccess }: ReadonlyBookFormProps) {
     : null
 
   const onSubmit = async (values: FormValues) => {
+    if (createReservation.isPending) return // guard against double-submit (button + step circle)
     try {
       const entryISO = toLocalDateTime(values.entryDate, values.entryTime)
       const exitISO  = toLocalDateTime(values.exitDate, values.exitTime)
@@ -166,6 +169,16 @@ export function BookForm({ userId, onSuccess }: ReadonlyBookFormProps) {
       toast.error(e?.message ?? 'Đặt chỗ thất bại')
     }
   }
+
+  // Expose validate-then-submit so the "Thanh toán" step circle can advance the wizard only
+  // when the required fields pass validation (same path as the "Tiếp Tục" button).
+  useEffect(() => {
+    if (!submitRef) return
+    submitRef.current = handleSubmit(onSubmit)
+    return () => {
+      submitRef.current = null
+    }
+  })
 
   const isQuotaFull =
     createReservation.isError && (createReservation.error as { code?: string })?.code === 'QUOTA_FULL'

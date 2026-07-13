@@ -6,7 +6,7 @@ import { usePricing } from '@/hooks/useAvailability'
 import type { CreateReservationResult } from '@/hooks/useReservations'
 import type { VehicleType } from '@/types/model'
 import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
-import { estimateParkingFee, findPricingForVehicle } from '@/lib/pricing'
+import { estimateDeposit, estimateParkingFee, findPricingForVehicle } from '@/lib/pricing'
 import type { BookFormValues } from './types'
 
 interface ReadonlyDepositCheckoutProps {
@@ -55,6 +55,10 @@ export function DepositCheckout({
   const feeEstimate = feePolicy
     ? estimateParkingFee(feePolicy, values.expectedEntryTime, values.expectedExitTime)
     : null
+  // Deposit = 50% of the estimated fee. Falls back to the BE amount when pricing is unavailable.
+  // NOTE: the amount PayOS actually charges is set by the backend (create-link); the BE must
+  // apply the same 50% rule for the charge to match this display.
+  const depositAmount = feeEstimate ? estimateDeposit(feeEstimate.total) : reservation.depositAmount
 
   // Store reservationId so /driver/payment/return — the single place that confirms the
   // deposit — can pick it up after the full-page PayOS redirect. No polling here: the
@@ -106,9 +110,11 @@ export function DepositCheckout({
             </div>
           )}
           <div className="mt-2 bg-blue-50 rounded-lg p-3 flex justify-between items-center border border-blue-100">
-            <span className="font-semibold text-gray-800">Tiền đặt cọc:</span>
+            <span className="font-semibold text-gray-800">
+              Tiền đặt cọc <span className="text-xs font-normal text-gray-500">(50% phí)</span>:
+            </span>
             <span className="text-xl font-bold text-blue-600">
-              {formatVnd(reservation.depositAmount)}
+              {formatVnd(depositAmount)}
             </span>
           </div>
           <p className="text-xs text-gray-400 text-center">
@@ -145,7 +151,7 @@ export function DepositCheckout({
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-bold text-white hover:bg-blue-700 transition-colors shadow-sm"
             >
               <span className="material-symbols-outlined text-[20px]">open_in_new</span>
-              Thanh toán {formatVnd(reservation.depositAmount)} qua PayOS
+              Thanh toán {formatVnd(depositAmount)} qua PayOS
             </button>
             <p className="text-xs text-gray-400 text-center">
               Sau khi thanh toán, quay lại trang này — hệ thống sẽ tự xác nhận.

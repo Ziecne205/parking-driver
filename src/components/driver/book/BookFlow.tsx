@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQueryClient } from '@tanstack/react-query'
@@ -34,6 +34,8 @@ export function BookFlow({ userId }: ReadonlyBookFlowProps) {
   const [createResult, setCreateResult] = useState<CreateReservationResult | null>(null)
   const [formValues, setFormValues] = useState<BookFormValues | null>(null)
   const [isBackingOut, setIsBackingOut] = useState(false)
+  // Lets the "Thanh toán" step circle trigger the form's validate-then-submit.
+  const formSubmitRef = useRef<(() => void) | null>(null)
 
   const { data: vehicleTypes = [] } = useVehicleTypes()
 
@@ -55,6 +57,21 @@ export function BookFlow({ userId }: ReadonlyBookFlowProps) {
     setCreateResult(null)
     setFormValues(null)
     setStep('form')
+  }
+
+  const canGoToPayment = !!createResult && !!formValues
+
+  // Step circles: 'form' goes back (cancelling the dangling reservation); 'payment' jumps
+  // forward when a reservation already exists, otherwise it runs the form's validation first —
+  // so you can never reach payment with missing/invalid fields.
+  function handleStepClick(target: BookStep) {
+    if (target === step || isBackingOut) return
+    if (target === 'form') {
+      handleBackToForm()
+    } else if (target === 'payment') {
+      if (canGoToPayment) setStep('payment')
+      else formSubmitRef.current?.()
+    }
   }
 
   return (
@@ -125,23 +142,34 @@ export function BookFlow({ userId }: ReadonlyBookFlowProps) {
             {STEPS.map((s, i) => {
               const done = i < currentIndex
               const active = i === currentIndex
+              const clickable = !active && !isBackingOut
+              const lockedHint =
+                s.key === 'payment' && !canGoToPayment
+                  ? 'Điền đủ thông tin đặt chỗ để tiếp tục thanh toán'
+                  : undefined
               return (
                 <div key={s.key} className="flex flex-col items-center gap-1 bg-gray-50 px-2">
-                  <div
+                  <button
+                    type="button"
+                    onClick={() => handleStepClick(s.key)}
+                    disabled={!clickable}
+                    aria-current={active ? 'step' : undefined}
+                    aria-label={`Bước ${i + 1}: ${s.label}`}
+                    title={lockedHint}
                     className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                       done
                         ? 'bg-blue-600 text-white'
                         : active
                         ? 'bg-blue-600 text-white shadow-[0_0_0_4px_#dbeafe]'
                         : 'bg-gray-200 text-gray-500 border-2 border-gray-200'
-                    }`}
+                    } ${clickable ? 'cursor-pointer hover:ring-2 hover:ring-blue-200' : 'cursor-default'}`}
                   >
                     {done ? (
                       <span className="material-symbols-outlined text-sm">check</span>
                     ) : (
                       i + 1
                     )}
-                  </div>
+                  </button>
                   <span
                     className={`text-xs font-medium ${
                       active ? 'text-blue-600 font-bold' : done ? 'text-gray-600' : 'text-gray-400'
@@ -159,6 +187,7 @@ export function BookFlow({ userId }: ReadonlyBookFlowProps) {
         {step === 'form' && (
           <BookForm
             userId={userId}
+            submitRef={formSubmitRef}
             onSuccess={(result, values) => {
               setCreateResult(result)
               setFormValues(values)
