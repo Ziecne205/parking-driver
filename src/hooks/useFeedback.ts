@@ -6,6 +6,8 @@ import { queryKeys } from '@/lib/constants'
 /** BE ParkingSessionDTO (GET /driver/sessions/history) — phiên đỗ của chính tài xế. */
 export interface DriverSession {
   sessionId: number
+  /** Set when the session came from a reservation (booked); null/absent for walk-ins. */
+  reservationId?: number | null
   licensePlateIn: string
   licensePlateOut?: string | null
   vehicleTypeName?: string | null

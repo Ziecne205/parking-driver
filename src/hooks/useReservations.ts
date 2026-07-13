@@ -59,6 +59,8 @@ export function useCreateReservation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.myReservations })
+      // Refresh live availability immediately — a new booking consumes headroom.
+      queryClient.invalidateQueries({ queryKey: queryKeys.parkingInfo })
     },
   })
 }
@@ -70,6 +72,8 @@ export function useCancelReservation() {
       api.patch<BeReservation>(`/driver/reservations/${reservationId}/cancel`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.myReservations })
+      // Cancelling frees headroom — refresh availability so the count reflects it.
+      queryClient.invalidateQueries({ queryKey: queryKeys.parkingInfo })
       toast.success('Đã hủy đặt chỗ')
     },
     onError: (error: AppError) => toast.error(error.message),

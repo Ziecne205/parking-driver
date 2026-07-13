@@ -5,9 +5,10 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { useVehicleTypes, useAvailability } from '@/hooks/useAvailability'
+import { useVehicleTypes, useAvailability, usePricing } from '@/hooks/useAvailability'
 import { useCreateReservation, type CreateReservationResult } from '@/hooks/useReservations'
 import { isCarVehicleType } from '@/lib/constants'
+import { estimateParkingFee, findPricingForVehicle } from '@/lib/pricing'
 import type { BookFormValues } from './types'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -51,6 +52,11 @@ function snapTo15(offsetMs: number): string {
  */
 function toLocalDateTime(date: string, time: string): string {
   return `${date}T${time}:00`
+}
+
+/** VND formatter for the fee estimate. */
+function formatVnd(amount: number): string {
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫'
 }
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -118,12 +124,24 @@ export function BookForm({ userId, onSuccess }: ReadonlyBookFormProps) {
   }, [carTypes, selectedVehicleTypeId, setValue])
 
   const { data: availability } = useAvailability()
+  const { data: pricing = [] } = usePricing()
 
-  const vehicleAvailability = availability?.byVehicleType.find((vt) => {
-    const matched = vehicleTypes.find((v) => v.id === selectedVehicleTypeId)
-    return vt.vehicleTypeName === matched?.name
-  })
+  const selectedVehicleType = vehicleTypes.find((v) => v.id === selectedVehicleTypeId)
+
+  const vehicleAvailability = availability?.byVehicleType.find(
+    (vt) => vt.vehicleTypeName === selectedVehicleType?.name,
+  )
   const headroom = vehicleAvailability?.walkInHeadroom ?? null
+
+  // Live estimated parking fee from the BE pricing policy (not a hardcoded rate).
+  const entryDate = watch('entryDate')
+  const entryTime = watch('entryTime')
+  const exitDate = watch('exitDate')
+  const exitTime = watch('exitTime')
+  const feePolicy = findPricingForVehicle(pricing, selectedVehicleType?.name)
+  const feeEstimate = feePolicy
+    ? estimateParkingFee(feePolicy, toLocalDateTime(entryDate, entryTime), toLocalDateTime(exitDate, exitTime))
+    : null
 
   const onSubmit = async (values: FormValues) => {
     try {
@@ -289,6 +307,25 @@ export function BookForm({ userId, onSuccess }: ReadonlyBookFormProps) {
               Còn {headroom} suất
             </span>
           )}
+        </div>
+      )}
+
+      {/* Estimated parking fee (from BE pricing policy, not a hardcoded rate) */}
+      {selectedVehicleTypeId && feeEstimate && (
+        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-gray-700">
+              <span className="material-symbols-outlined text-gray-400 text-sm">payments</span>
+              <span className="text-sm font-medium">Ước tính phí đỗ:</span>
+            </div>
+            <span className="text-base font-bold text-gray-900">{formatVnd(feeEstimate.total)}</span>
+          </div>
+          <p className="text-xs text-gray-400">
+            ~{feeEstimate.billableHours} giờ
+            {feeEstimate.nightSurchargeApplied > 0 &&
+              ` · gồm phụ phí ban đêm ${formatVnd(feeEstimate.nightSurchargeApplied)}`}
+            {' '}· phí chính thức tính khi kết thúc phiên đỗ
+          </p>
         </div>
       )}
 

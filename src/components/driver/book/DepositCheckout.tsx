@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react'
 import { useCreatePayosLink } from '@/hooks/usePayosLink'
+import { usePricing } from '@/hooks/useAvailability'
 import type { CreateReservationResult } from '@/hooks/useReservations'
 import type { VehicleType } from '@/types/model'
 import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
+import { estimateParkingFee, findPricingForVehicle } from '@/lib/pricing'
 import type { BookFormValues } from './types'
 
 interface ReadonlyDepositCheckoutProps {
@@ -45,7 +47,14 @@ export function DepositCheckout({
     }
   }, [isError, error])
 
-  const vtName = vehicleTypes.find((v) => v.id === values.vehicleTypeId)?.name ?? values.vehicleTypeId
+  const matchedVehicleName = vehicleTypes.find((v) => v.id === values.vehicleTypeId)?.name
+  const vtName = matchedVehicleName ?? values.vehicleTypeId
+
+  const { data: pricing = [] } = usePricing()
+  const feePolicy = findPricingForVehicle(pricing, matchedVehicleName)
+  const feeEstimate = feePolicy
+    ? estimateParkingFee(feePolicy, values.expectedEntryTime, values.expectedExitTime)
+    : null
 
   // Store reservationId so /driver/payment/return — the single place that confirms the
   // deposit — can pick it up after the full-page PayOS redirect. No polling here: the
@@ -87,6 +96,15 @@ export function DepositCheckout({
             <span className="text-gray-500">Giờ ra</span>
             <span className="font-semibold text-gray-900">{formatDateTime(values.expectedExitTime)}</span>
           </div>
+          {feeEstimate && (
+            <div className="flex justify-between py-1.5 border-b border-gray-100">
+              <span className="text-gray-500">Ước tính phí đỗ</span>
+              <span className="font-semibold text-gray-900">
+                {formatVnd(feeEstimate.total)}
+                <span className="text-xs font-normal text-gray-400"> (~{feeEstimate.billableHours} giờ)</span>
+              </span>
+            </div>
+          )}
           <div className="mt-2 bg-blue-50 rounded-lg p-3 flex justify-between items-center border border-blue-100">
             <span className="font-semibold text-gray-800">Tiền đặt cọc:</span>
             <span className="text-xl font-bold text-blue-600">

@@ -22,7 +22,8 @@ The app is organized under `src/app/driver/` with the following main modules:
 **Endpoints:** `GET /driver/parking-info`
 
 *   **Single Source of Truth:** The driver app does not hit the internal `/manager/vehicle-types` or `/manager/availability` endpoints. Instead, it relies on a single public endpoint (`/driver/parking-info`) which returns a `ParkingInfoResponse`.
-*   **Availability Derivation:** `useAvailability.ts` extracts the list of supported vehicle types, pricing policies, and calculates the available "headroom" (empty slots minus reserved quotas) for each vehicle type to determine if a driver can make a booking.
+*   **Availability Derivation:** `useAvailability.ts` extracts the list of supported vehicle types and calculates the available "headroom" (empty slots minus reserved quotas) for each vehicle type to determine if a driver can make a booking.
+*   **Pricing / Fee Estimate:** `usePricing()` (same `parking-info` cache) exposes the BE `pricingPolicies`, and `@/lib/pricing.ts` (`estimateParkingFee`) derives an estimated parking fee (base + extra hours + optional night surcharge) shown live on the booking form and checkout summary. Fees are **not** hardcoded on the FE; the authoritative fee is computed by the backend at exit.
 
 ## 3. Booking / Reservations
 **Hooks:** `useReservations.ts`
@@ -47,11 +48,13 @@ The app is organized under `src/app/driver/` with the following main modules:
 *   **Payment Linking:** `usePayosLink.ts` handles redirecting the user to the PayOS checkout page.
 *   **Payment Verification:** Once returned to the `/payment` success/cancel routes, `usePayDeposit.ts` is used to verify the payment status and update the reservation status to "CONFIRMED".
 
-## 6. Feedback (Session Ratings)
+## 6. Parking Sessions & Feedback
 **Hooks:** `useFeedback.ts`
 **Endpoints:** `GET /driver/sessions/history`, `POST /driver/feedbacks`
 
-*   **Self-Service Ratings:** Drivers rate their own **Completed** parking sessions from `/driver/feedback`. The list is derived from session history filtered to `Completed`; submitting sends a 1–5 rating + optional comment. The BE rejects a rating if the session isn't the driver's own, isn't Completed, or was already rated.
+*   **Session List (`/driver/feedback` → "Lịch sử đỗ xe"):** Displays the driver's own parking sessions from `sessions/history` — both **booked** (has `reservationId`) and **walk-in** (no reservation), tagged accordingly, with status, entry/exit times, plate and fee.
+*   **Self-Service Ratings:** Rating UI is shown only on **Completed** sessions; submitting sends a 1–5 rating + optional comment. The BE rejects a rating if the session isn't the driver's own, isn't Completed, or was already rated. "Live" (in-progress) parking is not rated — a session is only rateable once completed.
+*   **Note:** `sessions/history` currently returns finished sessions (Completed/Exception). Showing truly in-progress (Admitted/Parked) sessions would require a dedicated live-sessions endpoint on the BE.
 
 ## Note on Missing Features (Handled by Staff App)
 *   **Session Management (`useSessions.ts`):** The physical check-in and check-out process is handled entirely by Staff or Gate Cameras. The Driver app only manages the reservation phase.

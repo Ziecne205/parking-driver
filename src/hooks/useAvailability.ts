@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { LotAvailability, VehicleType } from '@/types/model'
 import type { BeParkingInfo } from '@/lib/beMappers'
+import type { VehiclePricing } from '@/lib/pricing'
 import { queryKeys } from '@/lib/constants'
 
 // The driver app has a single public source of truth: GET /driver/parking-info.
@@ -20,6 +21,22 @@ export function useVehicleTypes() {
       info.availabilityByVehicleType.map((v) => ({
         id: String(v.vehicleTypeId),
         name: v.vehicleTypeName,
+      })),
+  })
+}
+
+/** Pricing policies from parking-info (same cache) — used to estimate the parking fee. */
+export function usePricing() {
+  return useQuery({
+    queryKey: PARKING_INFO_KEY,
+    queryFn: fetchParkingInfo,
+    select: (info): VehiclePricing[] =>
+      info.pricingPolicies.map((p) => ({
+        vehicleTypeName: p.vehicleTypeName,
+        basePrice: p.basePrice,
+        baseHours: p.baseHours,
+        extraHourPrice: p.extraHourPrice,
+        nightSurcharge: p.nightSurcharge,
       })),
   })
 }

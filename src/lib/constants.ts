@@ -1,8 +1,5 @@
 // Domain label + config constants — capacity-reservation model, single building (v3.1).
-
-export const PRICING = {
-  BASE_RATE: 10000, // VND mỗi giờ (giá phẳng)
-} as const;
+// Parking fees are NOT hardcoded here — they come from the BE pricing policy; see @/lib/pricing.
 
 // sessionStorage key that bridges DepositCheckout -> /driver/payment/return across the
 // full-page PayOS redirect. Shared so the writer and reader can't drift apart.
