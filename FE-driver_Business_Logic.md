@@ -47,6 +47,11 @@ The app is organized under `src/app/driver/` with the following main modules:
 *   **Payment Linking:** `usePayosLink.ts` handles redirecting the user to the PayOS checkout page.
 *   **Payment Verification:** Once returned to the `/payment` success/cancel routes, `usePayDeposit.ts` is used to verify the payment status and update the reservation status to "CONFIRMED".
 
+## 6. Feedback (Session Ratings)
+**Hooks:** `useFeedback.ts`
+**Endpoints:** `GET /driver/sessions/history`, `POST /driver/feedbacks`
+
+*   **Self-Service Ratings:** Drivers rate their own **Completed** parking sessions from `/driver/feedback`. The list is derived from session history filtered to `Completed`; submitting sends a 1–5 rating + optional comment. The BE rejects a rating if the session isn't the driver's own, isn't Completed, or was already rated.
+
 ## Note on Missing Features (Handled by Staff App)
-*   **Feedback (`useFeedback.ts`):** Drivers do not manually submit feedback from this app. Feedback collection is wired into the exit-payment success screen of the Staff/Manager app, where the operator asks the driver for a rating at the exit gate.
 *   **Session Management (`useSessions.ts`):** The physical check-in and check-out process is handled entirely by Staff or Gate Cameras. The Driver app only manages the reservation phase.

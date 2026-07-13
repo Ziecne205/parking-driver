@@ -6,6 +6,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { RESERVATION_STATUS_LABELS } from '@/types/model'
+import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
 import type { PayosLink } from '@/hooks/usePayosLink'
 import type { ReadonlyBookingCardProps } from './types'
 
@@ -44,7 +45,11 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
         type: 'DEPOSIT',
         id: Number(reservationId), // reservationId is a string in the Reservation model
       }),
-    onSuccess: (res) => {
+    onSuccess: (res, reservationId) => {
+      // Bridge reservationId to /driver/payment/return (same as DepositCheckout) so the return
+      // page can confirm the deposit after the PayOS redirect. Without this, paying from the
+      // bookings list leaves the reservation stuck on Pending forever.
+      sessionStorage.setItem(PENDING_DEPOSIT_KEY, reservationId)
       window.location.href = res.checkoutUrl
     }
   })

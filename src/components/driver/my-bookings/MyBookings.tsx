@@ -28,26 +28,25 @@ export function MyBookings({ userId, onBack }: ReadonlyMyBookingsProps) {
   const router = useRouter()
   const pathname = usePathname()
 
+  // Read the PayOS return params from the initial URL exactly once, on mount.
+  // This must NOT depend on `searchParams`: the router.replace below strips the query,
+  // which would re-run the effect and fire its cleanup — cancelling the 10s stop-timer
+  // and leaving the list polling every 2s forever. So we run it once and stop cleanly.
   useEffect(() => {
     const confirmed = searchParams.get('confirmed')
-    if (confirmed) {
-      setConfirmedId(confirmed)
-      setIsPolling(true)
-      // Clean the URL immediately
-      router.replace(pathname ?? '/driver/my-bookings')
-      // Keep polling for up to 10s to pick up the BE webhook status update
-      const timer = setTimeout(() => setIsPolling(false), 10000)
-      return () => clearTimeout(timer)
-    }
+    const isReturn = !!confirmed || searchParams.has('code') || searchParams.has('cancel')
+    if (!isReturn) return
 
-    // Legacy: handle raw PayOS ?code= / ?cancel= params (e.g. if returnUrl is old)
-    if (searchParams.has('code') || searchParams.has('cancel')) {
-      setIsPolling(true)
-      router.replace(pathname ?? '/driver/my-bookings')
-      const timer = setTimeout(() => setIsPolling(false), 10000)
-      return () => clearTimeout(timer)
-    }
-  }, [searchParams, router, pathname])
+    // `confirmed` is set by our own return page; ?code=/?cancel= are legacy raw PayOS params.
+    if (confirmed) setConfirmedId(confirmed)
+    setIsPolling(true)
+    // Clean the URL so a refresh won't re-trigger the banner/poll.
+    router.replace(pathname ?? '/driver/my-bookings')
+    // Poll for up to 10s to pick up the BE status update, then stop.
+    const timer = setTimeout(() => setIsPolling(false), 10000)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const { data: reservations = [], isLoading } = useMyReservations(userId, {
     refetchInterval: isPolling ? 2000 : undefined,
