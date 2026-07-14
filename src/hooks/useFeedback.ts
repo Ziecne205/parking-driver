@@ -7,7 +7,7 @@ import { queryKeys } from '@/lib/constants'
 export interface DriverSession {
   sessionId: number
   /** Set when the session came from a reservation (booked); null/absent for walk-ins. */
-  reservationId?: number | null
+  reservationId?: string | null
   licensePlateIn: string
   licensePlateOut?: string | null
   vehicleTypeName?: string | null

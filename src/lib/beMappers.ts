@@ -5,7 +5,7 @@ import type { Reservation, User } from '@/types/model'
 
 /** BE `ReservationDTO` (flat — no nested User/VehicleType entity). */
 export interface BeReservation {
-  reservationId: number
+  reservationId: string
   userId?: number | null
   vehicleTypeId?: number | null
   vehicleTypeName?: string | null
