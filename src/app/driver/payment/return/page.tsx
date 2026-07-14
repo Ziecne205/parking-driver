@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { usePayDeposit } from '@/hooks/usePayDeposit'
 import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
@@ -20,7 +20,7 @@ import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
  *  4. If confirm fails we now SHOW the reason (instead of silently bouncing) and offer a
  *     retry — PayOS sometimes needs a few seconds to settle a just-paid transaction.
  */
-export default function PaymentReturnPage() {
+function PaymentReturnContent() {
   const params = useSearchParams()
   const router = useRouter()
   const { mutate: confirmDeposit } = usePayDeposit()
@@ -131,5 +131,22 @@ export default function PaymentReturnPage() {
         <p className="mt-4 text-sm text-gray-600">Đang xử lý kết quả thanh toán...</p>
       </div>
     </div>
+  )
+}
+
+export default function PaymentReturnPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent" />
+            <p className="mt-4 text-sm text-gray-600">Đang xử lý kết quả thanh toán...</p>
+          </div>
+        </div>
+      }
+    >
+      <PaymentReturnContent />
+    </Suspense>
   )
 }
