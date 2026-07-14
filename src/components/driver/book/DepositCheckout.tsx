@@ -2,11 +2,10 @@
 
 import { useEffect } from 'react'
 import { useCreatePayosLink } from '@/hooks/usePayosLink'
-import { usePricing } from '@/hooks/useAvailability'
+import { useReservationQuote } from '@/hooks/useReservationQuote'
 import type { CreateReservationResult } from '@/hooks/useReservations'
 import type { VehicleType } from '@/types/model'
 import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
-import { estimateDeposit, estimateParkingFee, findPricingForVehicle } from '@/lib/pricing'
 import type { BookFormValues } from './types'
 
 interface ReadonlyDepositCheckoutProps {
@@ -47,18 +46,16 @@ export function DepositCheckout({
     }
   }, [isError, error])
 
-  const matchedVehicleName = vehicleTypes.find((v) => v.id === values.vehicleTypeId)?.name
-  const vtName = matchedVehicleName ?? values.vehicleTypeId
+  const vtName = vehicleTypes.find((v) => v.id === values.vehicleTypeId)?.name ?? values.vehicleTypeId
 
-  const { data: pricing = [] } = usePricing()
-  const feePolicy = findPricingForVehicle(pricing, matchedVehicleName)
-  const feeEstimate = feePolicy
-    ? estimateParkingFee(feePolicy, values.expectedEntryTime, values.expectedExitTime)
-    : null
-  // Deposit = 50% of the estimated fee. Falls back to the BE amount when pricing is unavailable.
-  // NOTE: the amount PayOS actually charges is set by the backend (create-link); the BE must
-  // apply the same 50% rule for the charge to match this display.
-  const depositAmount = feeEstimate ? estimateDeposit(feeEstimate.total) : reservation.depositAmount
+  // Fee is priced by the BE. The deposit is whatever the BE stored on the reservation — the same
+  // amount PayOS will charge — so there is a single source of truth, no FE formula, no mismatch.
+  const { data: quote } = useReservationQuote(
+    values.vehicleTypeId,
+    values.expectedEntryTime,
+    values.expectedExitTime,
+  )
+  const depositAmount = reservation.depositAmount
 
   // Store reservationId so /driver/payment/return — the single place that confirms the
   // deposit — can pick it up after the full-page PayOS redirect. No polling here: the
@@ -100,22 +97,15 @@ export function DepositCheckout({
             <span className="text-gray-500">Giờ ra</span>
             <span className="font-semibold text-gray-900">{formatDateTime(values.expectedExitTime)}</span>
           </div>
-          {feeEstimate && (
+          {quote && (
             <div className="flex justify-between py-1.5 border-b border-gray-100">
               <span className="text-gray-500">Ước tính phí đỗ</span>
-              <span className="font-semibold text-gray-900">
-                {formatVnd(feeEstimate.total)}
-                <span className="text-xs font-normal text-gray-400"> (~{feeEstimate.billableHours} giờ)</span>
-              </span>
+              <span className="font-semibold text-gray-900">{formatVnd(quote.estimatedFee)}</span>
             </div>
           )}
           <div className="mt-2 bg-blue-50 rounded-lg p-3 flex justify-between items-center border border-blue-100">
-            <span className="font-semibold text-gray-800">
-              Tiền đặt cọc <span className="text-xs font-normal text-gray-500">(50% phí)</span>:
-            </span>
-            <span className="text-xl font-bold text-blue-600">
-              {formatVnd(depositAmount)}
-            </span>
+            <span className="font-semibold text-gray-800">Tiền đặt cọc:</span>
+            <span className="text-xl font-bold text-blue-600">{formatVnd(depositAmount)}</span>
           </div>
           <p className="text-xs text-gray-400 text-center">
             * Số tiền cọc sẽ được trừ vào tổng phí khi kết thúc phiên đỗ.
@@ -142,8 +132,8 @@ export function DepositCheckout({
         ) : payos ? (
           <div className="flex flex-col items-center gap-4">
             <p className="text-sm text-gray-600 text-center">
-              Nhấn nút bên dưới để thanh toán qua cổng PayOS.
-              Trang sẽ tự động cập nhật sau khi thanh toán thành công.
+              Nhấn nút bên dưới để thanh toán cọc qua cổng PayOS.
+              Trang sẽ tự cập nhật sau khi thanh toán thành công.
             </p>
             <button
               type="button"

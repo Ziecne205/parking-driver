@@ -3,11 +3,9 @@
 import { useState } from 'react'
 import { Calendar, Clock, Car, MapPin, AlertTriangle, X, CreditCard } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
-import { useMutation } from '@tanstack/react-query'
-import { api } from '@/lib/api'
 import { RESERVATION_STATUS_LABELS } from '@/types/model'
 import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
-import type { PayosLink } from '@/hooks/usePayosLink'
+import { useCreatePayosLinkMutation } from '@/hooks/usePayosLink'
 import type { ReadonlyBookingCardProps } from './types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -39,20 +37,22 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
   const [showQr, setShowQr] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
-  const createLink = useMutation({
-    mutationFn: (reservationId: string) =>
-      api.post<PayosLink>('/driver/payments/payos/create-link', {
-        type: 'DEPOSIT',
-        id: Number(reservationId), // reservationId is a string in the Reservation model
-      }),
-    onSuccess: (res, reservationId) => {
-      // Bridge reservationId to /driver/payment/return (same as DepositCheckout) so the return
-      // page can confirm the deposit after the PayOS redirect. Without this, paying from the
-      // bookings list leaves the reservation stuck on Pending forever.
-      sessionStorage.setItem(PENDING_DEPOSIT_KEY, reservationId)
-      window.location.href = res.checkoutUrl
-    }
-  })
+  const createLink = useCreatePayosLinkMutation()
+
+  function handlePayNow() {
+    createLink.mutate(
+      { type: 'DEPOSIT', id: reservation.reservationId },
+      {
+        onSuccess: (res) => {
+          // Bridge reservationId to /driver/payment/return (same as DepositCheckout) so the
+          // return page can confirm the deposit after the PayOS redirect. Without this, paying
+          // from the bookings list leaves the reservation stuck on Pending forever.
+          sessionStorage.setItem(PENDING_DEPOSIT_KEY, reservation.reservationId)
+          window.location.href = res.checkoutUrl
+        },
+      },
+    )
+  }
 
   const canCancel = CANCELLABLE_STATUSES.has(reservation.status)
   // FE-7: enforce 3-hour pre-entry cancellation policy on the FE to give clear
@@ -139,7 +139,7 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
           {reservation.status === 'Pending' && (
             <button
               type="button"
-              onClick={() => createLink.mutate(reservation.reservationId)}
+              onClick={handlePayNow}
               disabled={createLink.isPending}
               className="flex-1 rounded-lg border border-transparent bg-blue-600 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
             >

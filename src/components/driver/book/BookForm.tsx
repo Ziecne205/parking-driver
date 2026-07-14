@@ -5,10 +5,10 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { useVehicleTypes, useAvailability, usePricing } from '@/hooks/useAvailability'
+import { useVehicleTypes, useAvailability } from '@/hooks/useAvailability'
 import { useCreateReservation, type CreateReservationResult } from '@/hooks/useReservations'
+import { useReservationQuote } from '@/hooks/useReservationQuote'
 import { isCarVehicleType } from '@/lib/constants'
-import { estimateParkingFee, findPricingForVehicle } from '@/lib/pricing'
 import type { BookFormValues } from './types'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -126,7 +126,6 @@ export function BookForm({ userId, onSuccess, submitRef }: ReadonlyBookFormProps
   }, [carTypes, selectedVehicleTypeId, setValue])
 
   const { data: availability } = useAvailability()
-  const { data: pricing = [] } = usePricing()
 
   const selectedVehicleType = vehicleTypes.find((v) => v.id === selectedVehicleTypeId)
 
@@ -135,15 +134,19 @@ export function BookForm({ userId, onSuccess, submitRef }: ReadonlyBookFormProps
   )
   const headroom = vehicleAvailability?.walkInHeadroom ?? null
 
-  // Live estimated parking fee from the BE pricing policy (not a hardcoded rate).
+  // Live fee + deposit, priced by the BE (GET /driver/reservations/quote) — no pricing formula
+  // on the FE, so Manager fee/deposit changes flow through automatically.
   const entryDate = watch('entryDate')
   const entryTime = watch('entryTime')
   const exitDate = watch('exitDate')
   const exitTime = watch('exitTime')
-  const feePolicy = findPricingForVehicle(pricing, selectedVehicleType?.name)
-  const feeEstimate = feePolicy
-    ? estimateParkingFee(feePolicy, toLocalDateTime(entryDate, entryTime), toLocalDateTime(exitDate, exitTime))
-    : null
+  const entryISO = toLocalDateTime(entryDate, entryTime)
+  const exitISO = toLocalDateTime(exitDate, exitTime)
+  const { data: quote } = useReservationQuote(selectedVehicleTypeId, entryISO, exitISO)
+  const billableHours = Math.max(
+    1,
+    Math.ceil((new Date(exitISO).getTime() - new Date(entryISO).getTime()) / 3_600_000),
+  )
 
   const onSubmit = async (values: FormValues) => {
     if (createReservation.isPending) return // guard against double-submit (button + step circle)
@@ -323,21 +326,22 @@ export function BookForm({ userId, onSuccess, submitRef }: ReadonlyBookFormProps
         </div>
       )}
 
-      {/* Estimated parking fee (from BE pricing policy, not a hardcoded rate) */}
-      {selectedVehicleTypeId && feeEstimate && (
-        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col gap-1">
+      {/* Fee + deposit estimate, priced by the BE (not a hardcoded FE formula) */}
+      {selectedVehicleTypeId && quote && (
+        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-gray-700">
               <span className="material-symbols-outlined text-gray-400 text-sm">payments</span>
               <span className="text-sm font-medium">Ước tính phí đỗ:</span>
             </div>
-            <span className="text-base font-bold text-gray-900">{formatVnd(feeEstimate.total)}</span>
+            <span className="text-base font-bold text-gray-900">{formatVnd(quote.estimatedFee)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">Tiền đặt cọc:</span>
+            <span className="text-sm font-semibold text-blue-600">{formatVnd(quote.depositAmount)}</span>
           </div>
           <p className="text-xs text-gray-400">
-            ~{feeEstimate.billableHours} giờ
-            {feeEstimate.nightSurchargeApplied > 0 &&
-              ` · gồm phụ phí ban đêm ${formatVnd(feeEstimate.nightSurchargeApplied)}`}
-            {' '}· phí chính thức tính khi kết thúc phiên đỗ
+            ~{billableHours} giờ · phí chính thức tính khi kết thúc phiên đỗ
           </p>
         </div>
       )}

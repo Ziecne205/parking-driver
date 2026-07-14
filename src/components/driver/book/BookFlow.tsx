@@ -131,7 +131,9 @@ export function BookFlow({ userId }: ReadonlyBookFlowProps) {
       <main className="flex-grow w-full max-w-3xl mx-auto px-4 md:px-8 py-6">
         {/* Progress bar */}
         <div className="w-full max-w-md mx-auto mb-6">
-          <div className="flex items-center justify-between relative">
+          {/* `isolate` scopes the -z-10 track/fill to this row — without it the negative
+              z-index sinks them behind the page background and the connector vanishes. */}
+          <div className="flex items-center justify-between relative isolate">
             {/* Track */}
             <div className="absolute top-4 left-0 w-full h-1 bg-gray-200 rounded-full -z-10" />
             {/* Fill */}

@@ -23,11 +23,11 @@ The app is organized under `src/app/driver/` with the following main modules:
 
 *   **Single Source of Truth:** The driver app does not hit the internal `/manager/vehicle-types` or `/manager/availability` endpoints. Instead, it relies on a single public endpoint (`/driver/parking-info`) which returns a `ParkingInfoResponse`.
 *   **Availability Derivation:** `useAvailability.ts` extracts the list of supported vehicle types and calculates the available "headroom" (empty slots minus reserved quotas) for each vehicle type to determine if a driver can make a booking.
-*   **Pricing / Fee Estimate:** `usePricing()` (same `parking-info` cache) exposes the BE `pricingPolicies`, and `@/lib/pricing.ts` (`estimateParkingFee`) derives an estimated parking fee (base + extra hours + optional night surcharge) shown live on the booking form and checkout summary. Fees are **not** hardcoded on the FE; the authoritative fee is computed by the backend at exit.
+*   **Pricing / Fee Estimate:** The FE does **not** implement any pricing formula. `useReservationQuote.ts` calls `GET /driver/reservations/quote?vehicleTypeId&entryTime&exitTime`, and the backend returns `{ estimatedFee, depositAmount }` computed from the Manager's pricing policies + deposit config — so any fee/deposit change flows through automatically. Shown live on the booking form and checkout summary.
 
 ## 3. Booking / Reservations
-**Hooks:** `useReservations.ts`
-**Endpoints:** `POST /driver/reservations`, `PATCH /driver/reservations/{id}/cancel`
+**Hooks:** `useReservations.ts`, `useReservationQuote.ts`
+**Endpoints:** `POST /driver/reservations`, `GET /driver/reservations/quote`, `PATCH /driver/reservations/{id}/cancel`
 
 *   **Create Reservation:** Drivers can book a spot by providing `vehicleTypeId`, `licensePlate`, `expectedEntryTime`, and `expectedExitTime`.
 *   **Quota Handling:** If the parking lot is fully booked for the selected time, the backend throws a `409 Conflict` (specifically tagged as `QUOTA_FULL`). The frontend intercepts this to show a locked-state UI on the booking form rather than a generic error toast.

@@ -101,6 +101,21 @@ Creates a new parking reservation for the driver.
   }
   ```
 
+### `GET /driver/reservations/quote`
+Prices a booking window **without** creating a reservation — the FE calls this instead of duplicating the fee/deposit formula, so Manager pricing/deposit-config changes are reflected automatically.
+- **Query Parameters**:
+  - `vehicleTypeId`: number
+  - `entryTime`: string (ISO LocalDateTime, e.g. `2026-07-14T10:00:00`)
+  - `exitTime`: string (ISO LocalDateTime)
+- **Response (`ReservationQuoteDTO`)**:
+  ```json
+  {
+    "estimatedFee": "number",
+    "depositAmount": "number"
+  }
+  ```
+  `depositAmount` = `depositPercent × estimatedFee` (server-side), the exact amount PayOS will charge for the deposit.
+
 ### `GET /driver/reservations/my`
 Retrieves a list of all historical and active reservations belonging to the authenticated driver.
 - **Request Parameters**: None.

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { api, type AppError } from '@/lib/api'
 import { queryKeys } from '@/lib/constants'
 
@@ -41,5 +41,24 @@ export function useCreatePayosLink(input?: CreatePayosLinkInput) {
     },
     enabled: !!input && Number.isFinite(toNumericId(input?.id)),
     staleTime: Infinity, // don't refetch — same orderCode would be rejected by PayOS
+  })
+}
+
+/**
+ * Create a PayOS link on demand — e.g. paying from the bookings list. A mutation (not a query)
+ * so it fires only on click; a query would auto-create a link for every Pending card on mount.
+ */
+export function useCreatePayosLinkMutation() {
+  return useMutation<PayosLink, AppError, CreatePayosLinkInput>({
+    mutationFn: (input) => {
+      const numericId = toNumericId(input.id)
+      if (!Number.isFinite(numericId)) {
+        throw new Error('Invalid reservation ID — cannot create PayOS link')
+      }
+      return api.post<PayosLink>('/driver/payments/payos/create-link', {
+        type: input.type,
+        id: numericId,
+      })
+    },
   })
 }
