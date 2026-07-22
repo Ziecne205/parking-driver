@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, Clock, Car, MapPin, AlertTriangle, X, CreditCard } from 'lucide-react'
+import { Calendar, Clock, Car, MapPin, AlertTriangle, X, CreditCard, TimerReset } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { RESERVATION_STATUS_LABELS } from '@/types/model'
 import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
 import { useCreatePayosLinkMutation } from '@/hooks/usePayosLink'
+import { ExtendReservationDialog } from './ExtendReservationDialog'
 import type { ReadonlyBookingCardProps } from './types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -36,6 +37,7 @@ function formatVnd(amount: number) {
 export function BookingCard({ reservation, onCancel, isCancelling, highlighted = false }: ReadonlyBookingCardProps) {
   const [showQr, setShowQr] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [showExtend, setShowExtend] = useState(false)
 
   const createLink = useCreatePayosLinkMutation()
 
@@ -136,6 +138,16 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
               Mã QR vào cổng
             </button>
           )}
+          {(reservation.status === 'Confirmed' || reservation.status === 'CheckedIn') && (
+            <button
+              type="button"
+              onClick={() => setShowExtend(true)}
+              className="flex-1 rounded-lg border border-purple-200 bg-purple-50 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <TimerReset className="w-3.5 h-3.5" />
+              Gia hạn
+            </button>
+          )}
           {reservation.status === 'Pending' && (
             <button
               type="button"
@@ -213,6 +225,11 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
         </div>
       )}
 
+      {/* Extend Dialog */}
+      {showExtend && (
+        <ExtendReservationDialog reservation={reservation} onClose={() => setShowExtend(false)} />
+      )}
+
       {/* Cancel Confirm Modal */}
       {showCancelConfirm && (
         <div
@@ -229,7 +246,7 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
               <div>
                 <h3 className="text-base font-semibold text-gray-900">Hủy đặt chỗ?</h3>
                 <p className="mt-1 text-sm text-gray-600">
-                  Khoản cọc <span className="font-semibold text-red-600">{formatVnd(reservation.depositAmount)}</span> sẽ không được hoàn lại.
+                  Khoản cọc <span className="font-semibold text-gray-900">{formatVnd(reservation.depositAmount)}</span> sẽ được hoàn lại sau khi hủy.
                 </p>
               </div>
             </div>
