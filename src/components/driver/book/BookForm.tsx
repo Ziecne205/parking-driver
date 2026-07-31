@@ -346,6 +346,16 @@ export function BookForm({ userId, onSuccess, submitRef }: ReadonlyBookFormProps
         </div>
       )}
 
+      {/* Cancellation policy warning */}
+      {selectedVehicleTypeId && quote && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-2.5">
+          <span className="material-symbols-outlined text-amber-500 shrink-0 text-[20px] mt-0.5">info</span>
+          <p className="text-xs text-amber-800 leading-relaxed">
+            <span className="font-semibold">Lưu ý chính sách hủy:</span> Bạn chỉ có thể hủy đặt chỗ khi còn hơn 3 tiếng so với giờ vào dự kiến. Nếu hủy sau mốc đó, hệ thống sẽ khóa nút hủy.
+          </p>
+        </div>
+      )}
+
       {/* Quota full alert */}
       {isQuotaFull && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
@@ -358,6 +368,7 @@ export function BookForm({ userId, onSuccess, submitRef }: ReadonlyBookFormProps
           </div>
         </div>
       )}
+
 
       {/* Submit */}
       <div className="flex justify-end gap-3 pt-2">
