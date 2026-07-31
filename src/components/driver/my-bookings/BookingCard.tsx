@@ -58,11 +58,10 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
   }
 
   const canCancel = CANCELLABLE_STATUSES.has(reservation.status)
-  // FE-7: enforce 3-hour pre-entry cancellation policy on the FE to give clear
-  // feedback before the request hits the BE.
-  const hoursUntilEntry =
-    (new Date(reservation.expectedEntryTime).getTime() - Date.now()) / 3_600_000
-  const cancelBlockedByTime = canCancel && hoursUntilEntry < 3
+  // Chính sách: phải đợi ít nhất 3 tiếng sau khi đặt mới được hủy.
+  const hoursSinceCreation =
+    (Date.now() - new Date(reservation.createdAt).getTime()) / 3_600_000
+  const cancelBlockedByTime = canCancel && hoursSinceCreation < 3
   const statusStyle = STATUS_STYLES[reservation.status] ?? STATUS_STYLES.Fulfilled
   const statusLabel = RESERVATION_STATUS_LABELS[reservation.status] ?? reservation.status
 
@@ -164,7 +163,7 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
               </button>
               {cancelBlockedByTime && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-lg bg-gray-800 px-3 py-2 text-xs text-white text-center shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
-                  Không thể hủy trong vòng 3 giờ trước giờ vào
+                  Không thể hủy trong vòng 3 tiếng đầu sau khi đặt chỗ
                   <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
                 </div>
               )}
