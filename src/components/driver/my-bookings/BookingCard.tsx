@@ -6,6 +6,8 @@ import { QRCodeSVG } from 'qrcode.react'
 import { RESERVATION_STATUS_LABELS } from '@/types/model'
 import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
 import { useCreatePayosLinkMutation } from '@/hooks/usePayosLink'
+import { ManualRefundModal } from '../manual-refund/ManualRefundModal'
+import { HandCoins } from 'lucide-react'
 import type { ReadonlyBookingCardProps } from './types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -36,6 +38,7 @@ function formatVnd(amount: number) {
 export function BookingCard({ reservation, onCancel, isCancelling, highlighted = false }: ReadonlyBookingCardProps) {
   const [showQr, setShowQr] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [showRefundModal, setShowRefundModal] = useState(false)
 
   const createLink = useCreatePayosLinkMutation()
 
@@ -167,6 +170,16 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
               )}
             </div>
           )}
+          {reservation.status === 'Cancelled' && reservation.depositAmount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowRefundModal(true)}
+              className="flex-1 rounded-lg border border-blue-200 bg-blue-50 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <HandCoins className="w-3.5 h-3.5" />
+              Yêu cầu hoàn cọc
+            </button>
+          )}
         </div>
       </div>
 
@@ -253,6 +266,15 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
             </div>
           </div>
         </div>
+      )}
+
+      {/* Manual Refund Modal */}
+      {showRefundModal && (
+        <ManualRefundModal
+          reservationId={reservation.reservationId}
+          depositAmount={reservation.depositAmount}
+          onClose={() => setShowRefundModal(false)}
+        />
       )}
     </div>
   )
