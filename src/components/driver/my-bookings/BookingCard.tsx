@@ -6,7 +6,6 @@ import { QRCodeSVG } from 'qrcode.react'
 import { RESERVATION_STATUS_LABELS } from '@/types/model'
 import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
 import { useCreatePayosLinkMutation } from '@/hooks/usePayosLink'
-import { ExtendReservationDialog } from './ExtendReservationDialog'
 import type { ReadonlyBookingCardProps } from './types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -136,16 +135,6 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
             >
               <span className="material-symbols-outlined text-base">qr_code_2</span>
               Mã QR vào cổng
-            </button>
-          )}
-          {(reservation.status === 'Confirmed' || reservation.status === 'CheckedIn') && (
-            <button
-              type="button"
-              onClick={() => setShowExtend(true)}
-              className="flex-1 rounded-lg border border-purple-200 bg-purple-50 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 transition-colors flex items-center justify-center gap-1.5"
-            >
-              <TimerReset className="w-3.5 h-3.5" />
-              Gia hạn
             </button>
           )}
           {reservation.status === 'Pending' && (
