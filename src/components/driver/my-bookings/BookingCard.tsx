@@ -8,6 +8,7 @@ import { PENDING_DEPOSIT_KEY } from '@/lib/constants'
 import { useCreatePayosLinkMutation } from '@/hooks/usePayosLink'
 import { ManualRefundModal } from '../manual-refund/ManualRefundModal'
 import { HandCoins } from 'lucide-react'
+import { useFeeConfig } from '@/hooks/useFeeConfig'
 import type { ReadonlyBookingCardProps } from './types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -41,6 +42,7 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
   const [showRefundModal, setShowRefundModal] = useState(false)
 
   const createLink = useCreatePayosLinkMutation()
+  const { data: feeConfig } = useFeeConfig()
 
   function handlePayNow() {
     createLink.mutate(
@@ -58,10 +60,11 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
   }
 
   const canCancel = CANCELLABLE_STATUSES.has(reservation.status)
-  // Chính sách: phải đợi ít nhất 10 phút sau khi đặt mới được hủy.
+  // Chinh sach: phai doi it nhat cancelWindowMinutes sau khi dat moi duoc huy.
+  const cancelWindowMinutes = feeConfig?.cancelWindowMinutes ?? 10
   const minutesSinceCreation =
     (Date.now() - new Date(reservation.createdAt).getTime()) / 60_000
-  const cancelBlockedByTime = canCancel && minutesSinceCreation < 10
+  const cancelBlockedByTime = canCancel && minutesSinceCreation < cancelWindowMinutes
   const statusStyle = STATUS_STYLES[reservation.status] ?? STATUS_STYLES.Fulfilled
   const statusLabel = RESERVATION_STATUS_LABELS[reservation.status] ?? reservation.status
 
@@ -163,7 +166,7 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
               </button>
               {cancelBlockedByTime && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-lg bg-gray-800 px-3 py-2 text-xs text-white text-center shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
-                  Không thể hủy trong vòng 10 phút đầu sau khi đặt chỗ
+                  Không thể hủy trong vòng {cancelWindowMinutes} phút đầu sau khi đặt chỗ
                   <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
                 </div>
               )}
