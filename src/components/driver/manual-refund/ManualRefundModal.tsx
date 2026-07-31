@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { X, HandCoins } from 'lucide-react'
+import { X, HandCoins, AlertCircle } from 'lucide-react'
 import { useSubmitManualRefund } from '@/hooks/useManualRefund'
-import { toast } from 'react-hot-toast'
 
 interface ManualRefundModalProps {
   reservationId: string
@@ -12,13 +11,17 @@ interface ManualRefundModalProps {
 export function ManualRefundModal({ reservationId, depositAmount, onClose }: ManualRefundModalProps) {
   const [reason, setReason] = useState('')
   const [bankInfo, setBankInfo] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
   const submitRefund = useSubmitManualRefund()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+    setErrorMsg('')
+    setSuccessMsg('')
+
     if (!reason.trim() || !bankInfo.trim()) {
-      toast.error('Vui lòng điền đầy đủ thông tin')
+      setErrorMsg('Vui lòng điền đầy đủ thông tin')
       return
     }
 
@@ -26,11 +29,11 @@ export function ManualRefundModal({ reservationId, depositAmount, onClose }: Man
       { reservationId, reason, bankInfo },
       {
         onSuccess: () => {
-          toast.success('Gửi yêu cầu hoàn cọc thành công')
-          onClose()
+          setSuccessMsg('Gửi yêu cầu hoàn cọc thành công!')
+          setTimeout(onClose, 1500)
         },
         onError: (error: any) => {
-          toast.error(error.response?.data?.message || 'Có lỗi xảy ra')
+          setErrorMsg(error?.message || 'Có lỗi xảy ra, vui lòng thử lại')
         }
       }
     )
@@ -62,6 +65,17 @@ export function ManualRefundModal({ reservationId, depositAmount, onClose }: Man
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {errorMsg && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {errorMsg}
+            </div>
+          )}
+          {successMsg && (
+            <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700">
+              {successMsg}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Số tiền cọc cần hoàn

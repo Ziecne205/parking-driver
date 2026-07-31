@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export interface ManualRefundSubmitRequest {
   reservationId: string;
@@ -28,11 +28,7 @@ export function useSubmitManualRefund() {
 
   return useMutation({
     mutationFn: async (data: ManualRefundSubmitRequest) => {
-      const response = await apiClient.post<{ data: ManualRefundResponse }>(
-        "/driver/manual-refunds",
-        data
-      );
-      return response.data.data;
+      return api.post<ManualRefundResponse>("/driver/manual-refunds", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myRefundRequests"] });
@@ -45,10 +41,7 @@ export function useMyRefundRequests() {
   return useQuery({
     queryKey: ["myRefundRequests"],
     queryFn: async () => {
-      const response = await apiClient.get<{ data: ManualRefundResponse[] }>(
-        "/driver/manual-refunds"
-      );
-      return response.data.data;
+      return api.get<ManualRefundResponse[]>("/driver/manual-refunds");
     },
   });
 }
