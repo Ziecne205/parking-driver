@@ -351,7 +351,7 @@ export function BookForm({ userId, onSuccess, submitRef }: ReadonlyBookFormProps
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-2.5">
           <span className="material-symbols-outlined text-amber-500 shrink-0 text-[20px] mt-0.5">info</span>
           <p className="text-xs text-amber-800 leading-relaxed">
-            <span className="font-semibold">Lưu ý chính sách hủy:</span> Sau khi đặt chỗ thành công, bạn phải đợi ít nhất <span className="font-semibold">3 tiếng</span> mới được phép hủy. Hãy cân nhắc kỹ trước khi xác nhận đặt chỗ.
+            <span className="font-semibold">Lưu ý chính sách hủy:</span> Sau khi đặt chỗ thành công, bạn phải đợi ít nhất <span className="font-semibold">10 phút</span> mới được phép hủy. Hãy cân nhắc kỹ trước khi xác nhận đặt chỗ.
           </p>
         </div>
       )}
