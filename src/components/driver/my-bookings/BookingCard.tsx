@@ -36,7 +36,6 @@ function formatVnd(amount: number) {
 export function BookingCard({ reservation, onCancel, isCancelling, highlighted = false }: ReadonlyBookingCardProps) {
   const [showQr, setShowQr] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
-  const [showExtend, setShowExtend] = useState(false)
 
   const createLink = useCreatePayosLinkMutation()
 
@@ -212,11 +211,6 @@ export function BookingCard({ reservation, onCancel, isCancelling, highlighted =
             </button>
           </div>
         </div>
-      )}
-
-      {/* Extend Dialog */}
-      {showExtend && (
-        <ExtendReservationDialog reservation={reservation} onClose={() => setShowExtend(false)} />
       )}
 
       {/* Cancel Confirm Modal */}
